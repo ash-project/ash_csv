@@ -1,13 +1,46 @@
 defmodule AshCsv.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+
+  @description "A CSV data layer for Ash"
+
   def project do
     [
       app: :ash_csv,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      package: package(),
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.github": :test
+      ],
+      docs: docs(),
+      aliases: aliases(),
+      description: @description,
+      source_url: "https://github.com/ash-project/ash_csv",
+      homepage_url: "https://github.com/ash-project/ash_csv"
+    ]
+  end
+
+  defp docs do
+    [
+      main: "AshCsv",
+      source_ref: "v#{@version}",
+      logo: "logos/small-logo.png"
+    ]
+  end
+
+  defp package do
+    [
+      name: :ash_csv,
+      licenses: ["MIT"],
+      links: %{
+        GitHub: "https://github.com/ash-project/ash_csv"
+      }
     ]
   end
 
@@ -32,6 +65,14 @@ defmodule AshCsv.MixProject do
       {:excoveralls, "~> 0.13.0", only: [:dev, :test]}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+    ]
+  end
+
+  defp aliases do
+    [
+      sobelow: "sobelow --skip",
+      credo: "credo --strict",
+      "ash.formatter": "ash.formatter --extensions AshCsv.DataLayer"
     ]
   end
 end
