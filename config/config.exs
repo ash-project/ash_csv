@@ -2,7 +2,7 @@ use Mix.Config
 
 if Mix.env() == :dev do
   config :git_ops,
-    mix_project: Ash.MixProject,
+    mix_project: AshCsv.MixProject,
     changelog_file: "CHANGELOG.md",
     repository_url: "https://github.com/ash-project/ash_csv",
     # Instructs the tool to manage your mix version in your `mix.exs` file
