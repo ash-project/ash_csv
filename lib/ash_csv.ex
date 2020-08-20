@@ -1,18 +1,7 @@
 defmodule AshCsv do
   @moduledoc """
-  Documentation for `AshCsv`.
+  A CSV datalayer for the Ash framework
+
+  Currently only for demoing.
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> AshCsv.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end
