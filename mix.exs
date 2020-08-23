@@ -54,10 +54,10 @@ defmodule AshCsv.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, "~> 1.11.1"},
+      {:ash, ash_version("~> 1.11.1")},
       {:csv, "~> 2.3"},
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
-      {:ex_check, "~> 0.11.0", only: :dev},
+      {:ex_check, "~> 0.12.0", only: :dev},
       {:credo, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
       {:sobelow, ">= 0.0.0", only: :dev, runtime: false},
@@ -66,6 +66,15 @@ defmodule AshCsv.MixProject do
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
+  end
+
+  defp ash_version(default_version) do
+    case System.get_env("ASH_VERSION") do
+      nil -> default_version
+      "local" -> [path: "../ash"]
+      "master" -> [git: "https://github.com/ash-project/ash.git"]
+      version -> "~> #{version}"
+    end
   end
 
   defp aliases do
