@@ -159,7 +159,7 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def destroy(%resource{} = record) do
+  def destroy(resource, %{data: record}) do
     resource
     |> do_read_file()
     |> do_destroy(resource, record)
