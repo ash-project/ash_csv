@@ -5,6 +5,19 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.5.0](https://github.com/ash-project/ash_csv/compare/v0.4.0...v0.5.0) (2020-10-06)
+
+
+
+
+### Features:
+
+* tests + fixes
+
+### Bug Fixes:
+
+* update ash matrix
+
 ## [v0.4.0](https://github.com/ash-project/ash_csv/compare/v0.3.0...v0.4.0) (2020-10-06)
 
 
