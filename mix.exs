@@ -18,6 +18,7 @@ defmodule AshCsv.MixProject do
         coveralls: :test,
         "coveralls.github": :test
       ],
+      elixirc_paths: elixirc_paths(Mix.env()),
       docs: docs(),
       aliases: aliases(),
       description: @description,
@@ -25,6 +26,9 @@ defmodule AshCsv.MixProject do
       homepage_url: "https://github.com/ash-project/ash_csv"
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp docs do
     [
@@ -54,7 +58,7 @@ defmodule AshCsv.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, ash_version("~> 1.11.1")},
+      {:ash, ash_version("~> 1.15")},
       {:csv, "~> 2.3"},
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:ex_check, "~> 0.12.0", only: :dev},

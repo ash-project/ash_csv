@@ -4,8 +4,9 @@ defmodule AshCsv.DataLayer do
 
   alias Ash.Actions.Sort
   alias Ash.Dsl.Extension
-  alias Ash.Filter.{Expression, Not, Predicate}
-  alias Ash.Filter.Predicate.{Eq, GreaterThan, In, LessThan}
+
+  @builtin_ops Ash.Filter.builtin_operators()
+  @builtin_funcs Ash.Filter.builtin_functions()
 
   @impl true
   def can?(_, :read), do: true
@@ -19,10 +20,8 @@ defmodule AshCsv.DataLayer do
   def can?(_, :boolean_filter), do: true
   def can?(_, :transact), do: true
   def can?(_, :delete_with_query), do: false
-  def can?(_, {:filter_predicate, _, %In{}}), do: true
-  def can?(_, {:filter_predicate, _, %Eq{}}), do: true
-  def can?(_, {:filter_predicate, _, %LessThan{}}), do: true
-  def can?(_, {:filter_predicate, _, %GreaterThan{}}), do: true
+  def can?(_, {:filter_operator, %op{}}) when op in @builtin_ops, do: true
+  def can?(_, {:filter_function, %func{}}) when func in @builtin_funcs, do: true
   def can?(_, {:sort, _}), do: true
   def can?(_, _), do: false
 
@@ -52,7 +51,6 @@ defmodule AshCsv.DataLayer do
       ],
       columns: [
         type: {:custom, __MODULE__, :columns_opt, []},
-        default: [],
         doc: "The order that the attributes appear in the columns of the CSV"
       ]
     ]
@@ -168,9 +166,13 @@ defmodule AshCsv.DataLayer do
   defp cast_stored(resource, keys) do
     Enum.reduce_while(keys, {:ok, resource.__struct__}, fn {key, value}, {:ok, record} ->
       with attribute when not is_nil(attribute) <- Ash.Resource.attribute(resource, key),
+           {:value, value} when not is_nil(value) <- {:value, stored_value(value, attribute)},
            {:ok, loaded} <- Ash.Type.cast_stored(attribute.type, value) do
         {:cont, {:ok, struct(record, [{key, loaded}])}}
       else
+        {:value, nil} ->
+          {:cont, {:ok, struct(record, [{key, nil}])}}
+
         nil ->
           {:halt, {:error, "#{key} is not an attribute"}}
 
@@ -178,6 +180,14 @@ defmodule AshCsv.DataLayer do
           {:halt, {:error, "#{key} could not be loaded"}}
       end
     end)
+  end
+
+  defp stored_value(value, attribute) do
+    if value == "" and Ash.Type.ecto_type(attribute.type) != :string do
+      nil
+    else
+      value
+    end
   end
 
   @impl true
@@ -218,58 +228,7 @@ defmodule AshCsv.DataLayer do
   def filter_matches(records, nil), do: records
 
   def filter_matches(records, filter) do
-    Enum.filter(records, &matches_filter?(&1, filter.expression))
-  end
-
-  defp matches_filter?(_record, nil), do: true
-  defp matches_filter?(_record, boolean) when is_boolean(boolean), do: boolean
-
-  defp matches_filter?(
-         record,
-         %Predicate{
-           predicate: predicate,
-           attribute: %{name: name},
-           relationship_path: []
-         }
-       ) do
-    matches_predicate?(record, name, predicate)
-  end
-
-  defp matches_filter?(record, %Expression{op: :and, left: left, right: right}) do
-    matches_filter?(record, left) && matches_filter?(record, right)
-  end
-
-  defp matches_filter?(record, %Expression{op: :or, left: left, right: right}) do
-    matches_filter?(record, left) || matches_filter?(record, right)
-  end
-
-  defp matches_filter?(record, %Not{expression: expression}) do
-    not matches_filter?(record, expression)
-  end
-
-  defp matches_predicate?(record, field, %Eq{value: predicate_value}) do
-    Map.fetch(record, field) == {:ok, predicate_value}
-  end
-
-  defp matches_predicate?(record, field, %LessThan{value: predicate_value}) do
-    case Map.fetch(record, field) do
-      {:ok, value} -> value < predicate_value
-      :error -> false
-    end
-  end
-
-  defp matches_predicate?(record, field, %GreaterThan{value: predicate_value}) do
-    case Map.fetch(record, field) do
-      {:ok, value} -> value > predicate_value
-      :error -> false
-    end
-  end
-
-  defp matches_predicate?(record, field, %In{values: predicate_values}) do
-    case Map.fetch(record, field) do
-      {:ok, value} -> value in predicate_values
-      :error -> false
-    end
+    Enum.filter(records, &Ash.Filter.Runtime.matches?(nil, &1, filter.expression))
   end
 
   # sobelow_skip ["Traversal.FileModule"]
@@ -388,7 +347,7 @@ defmodule AshCsv.DataLayer do
   end
 
   defp dump_row(resource, changeset, results) do
-    Enum.reduce_while(columns(resource), {:ok, []}, fn key, {:ok, row} ->
+    Enum.reduce_while(Enum.reverse(columns(resource)), {:ok, []}, fn key, {:ok, row} ->
       type = Ash.Resource.attribute(resource, key).type
       value = Ash.Changeset.get_attribute(changeset, key)
 
@@ -463,7 +422,7 @@ defmodule AshCsv.DataLayer do
   end
 
   # sobelow_skip ["Traversal.FileModule"]
-  defp create_from_records(records, resource, changeset) do
+  defp create_from_records(records, resource, changeset, retry? \\ false) do
     pkey = Ash.Resource.primary_key(resource)
     pkey_value = Map.take(changeset.attributes, pkey)
 
@@ -497,6 +456,13 @@ defmodule AshCsv.DataLayer do
           |> case do
             :ok ->
               {:ok, struct(resource, changeset.attributes)}
+
+            {:error, :enoent} when retry? ->
+              {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+
+            {:error, :enoent} ->
+              File.mkdir_p!(Path.dirname(file(resource)))
+              create_from_records(records, resource, changeset, true)
 
             {:error, error} ->
               {:error, "Error while writing to CSV: #{inspect(error)}"}
