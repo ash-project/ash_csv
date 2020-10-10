@@ -1,6 +1,7 @@
 defmodule AshCsvTest do
   use ExUnit.Case, async: false
   alias AshCsv.Test.{Api, Post}
+  require Ash.Query
 
   setup do
     on_exit(fn ->
@@ -55,7 +56,7 @@ defmodule AshCsvTest do
 
     results =
       Post
-      |> Ash.Query.filter(title: [in: ["title1", "title2"]])
+      |> Ash.Query.filter(title in ["title1", "title2"])
       |> Ash.Query.sort(:title)
       |> Api.read!()
 
