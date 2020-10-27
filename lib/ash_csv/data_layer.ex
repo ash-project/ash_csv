@@ -103,6 +103,15 @@ defmodule AshCsv.DataLayer do
     end
   end
 
+  @doc false
+  def separator_opt(val) when is_integer(val) do
+    {:ok, val}
+  end
+
+  def separator_opt(val) do
+    {:error, "Expected a character for separator, got #{val}"}
+  end
+
   use Extension, sections: [@csv]
 
   defmodule Query do
