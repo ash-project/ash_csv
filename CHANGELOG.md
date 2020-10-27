@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.6.1](https://github.com/ash-project/ash_csv/compare/v0.6.0...v0.6.1) (2020-10-27)
+
+
+
+
+### Bug Fixes:
+
+* add separator_opt validator
+
 ## [v0.6.0](https://github.com/ash-project/ash_csv/compare/v0.5.0...v0.6.0) (2020-10-10)
 
 
