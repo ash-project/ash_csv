@@ -1,5 +1,4 @@
 defmodule AshCsv.DataLayer do
-  @moduledoc "The data layer implementation for AshCsv"
   @behaviour Ash.DataLayer
 
   alias Ash.Actions.Sort
@@ -27,6 +26,17 @@ defmodule AshCsv.DataLayer do
 
   @csv %Ash.Dsl.Section{
     name: :csv,
+    examples: [
+      """
+      csv do
+        file "priv/data/tags.csv"
+        create? true
+        header? true
+        separator '-'
+        columns [:id, :name]
+      end
+      """
+    ],
     schema: [
       file: [
         type: :string,
@@ -112,7 +122,17 @@ defmodule AshCsv.DataLayer do
     {:error, "Expected a character for separator, got #{val}"}
   end
 
-  use Extension, sections: [@csv]
+  @sections [@csv]
+
+  @moduledoc """
+  The data layer implementation for AshCsv
+
+  # Table of Contents
+  #{Ash.Dsl.Extension.doc_index(@sections)}
+
+  #{Ash.Dsl.Extension.doc(@sections)}
+  """
+  use Extension, sections: @sections
 
   defmodule Query do
     @moduledoc false
