@@ -200,7 +200,7 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def resource_to_query(resource) do
+  def resource_to_query(resource, _) do
     %Query{resource: resource}
   end
 
