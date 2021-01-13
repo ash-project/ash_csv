@@ -17,7 +17,7 @@ defmodule AshCsv.Test.Post do
   end
 
   attributes do
-    attribute(:id, :uuid, primary_key?: true, default: &Ecto.UUID.generate/0)
+    uuid_primary_key true
     attribute(:title, :string)
     attribute(:score, :integer)
     attribute(:public, :boolean)
