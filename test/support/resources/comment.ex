@@ -15,7 +15,7 @@ defmodule AshCsv.Test.Comment do
   end
 
   attributes do
-    uuid_primary_key :id
+    uuid_primary_key(:id)
     attribute(:title, :string)
   end
 

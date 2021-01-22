@@ -4,9 +4,6 @@ defmodule AshCsv.DataLayer do
   alias Ash.Actions.Sort
   alias Ash.Dsl.Extension
 
-  @builtin_ops Ash.Filter.builtin_operators()
-  @builtin_funcs Ash.Filter.builtin_functions()
-
   @impl true
   def can?(_, :read), do: true
   def can?(_, :create), do: true
@@ -19,8 +16,7 @@ defmodule AshCsv.DataLayer do
   def can?(_, :boolean_filter), do: true
   def can?(_, :transact), do: true
   def can?(_, :delete_with_query), do: false
-  def can?(_, {:filter_operator, %op{}}) when op in @builtin_ops, do: true
-  def can?(_, {:filter_function, %func{}}) when func in @builtin_funcs, do: true
+  def can?(_, {:filter_expr, _}), do: true
   def can?(_, {:sort, _}), do: true
   def can?(_, _), do: false
 

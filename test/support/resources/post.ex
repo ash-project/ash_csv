@@ -17,7 +17,7 @@ defmodule AshCsv.Test.Post do
   end
 
   attributes do
-    uuid_primary_key true
+    uuid_primary_key(:id)
     attribute(:title, :string)
     attribute(:score, :integer)
     attribute(:public, :boolean)
