@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.8.1](https://github.com/ash-project/ash_csv/compare/v0.8.0...v0.8.1) (2021-02-23)
+
+
+
+
+### Improvements:
+
+* support latest ash
+
 ## [v0.8.0](https://github.com/ash-project/ash_csv/compare/v0.7.0-rc0...v0.8.0) (2021-01-22)
 
 
