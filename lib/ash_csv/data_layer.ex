@@ -190,7 +190,7 @@ defmodule AshCsv.DataLayer do
 
   defp cast_stored(resource, keys) do
     Enum.reduce_while(keys, {:ok, resource.__struct__}, fn {key, value}, {:ok, record} ->
-      with attribute when not is_nil(attribute) <- Ash.Resource.attribute(resource, key),
+      with attribute when not is_nil(attribute) <- Ash.Resource.Info.attribute(resource, key),
            {:value, value} when not is_nil(value) <- {:value, stored_value(value, attribute)},
            {:ok, loaded} <- Ash.Type.cast_stored(attribute.type, value) do
         {:cont, {:ok, struct(record, [{key, loaded}])}}
@@ -260,7 +260,7 @@ defmodule AshCsv.DataLayer do
   defp do_destroy({:ok, results}, resource, record) do
     columns = columns(resource)
 
-    pkey = Ash.Resource.primary_key(resource)
+    pkey = Ash.Resource.Info.primary_key(resource)
 
     changeset_pkey = Map.take(record, pkey)
 
@@ -319,7 +319,7 @@ defmodule AshCsv.DataLayer do
   defp do_update({:ok, results}, resource, changeset) do
     columns = columns(resource)
 
-    pkey = Ash.Resource.primary_key(resource)
+    pkey = Ash.Resource.Info.primary_key(resource)
 
     changeset_pkey =
       Enum.into(pkey, %{}, fn key ->
@@ -373,7 +373,7 @@ defmodule AshCsv.DataLayer do
 
   defp dump_row(resource, changeset, results) do
     Enum.reduce_while(Enum.reverse(columns(resource)), {:ok, []}, fn key, {:ok, row} ->
-      type = Ash.Resource.attribute(resource, key).type
+      type = Ash.Resource.Info.attribute(resource, key).type
       value = Ash.Changeset.get_attribute(changeset, key)
 
       case Ash.Type.dump_to_native(type, value) do
@@ -448,7 +448,7 @@ defmodule AshCsv.DataLayer do
 
   # sobelow_skip ["Traversal.FileModule"]
   defp create_from_records(records, resource, changeset, retry? \\ false) do
-    pkey = Ash.Resource.primary_key(resource)
+    pkey = Ash.Resource.Info.primary_key(resource)
     pkey_value = Map.take(changeset.attributes, pkey)
 
     if Enum.any?(records, fn record -> Map.take(record, pkey) == pkey_value end) do
@@ -456,7 +456,7 @@ defmodule AshCsv.DataLayer do
     else
       row =
         Enum.reduce_while(columns(resource), {:ok, []}, fn key, {:ok, row} ->
-          type = Ash.Resource.attribute(resource, key).type
+          type = Ash.Resource.Info.attribute(resource, key).type
           value = Map.get(changeset.attributes, key)
 
           case Ash.Type.dump_to_native(type, value) do

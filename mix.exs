@@ -58,7 +58,7 @@ defmodule AshCsv.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, ash_version("~> 1.30 and >= 1.30.1")},
+      {:ash, ash_version("~> 1.34 and >= 1.34.2")},
       {:csv, "~> 2.3"},
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:ex_check, "~> 0.12.0", only: :dev},
