@@ -456,16 +456,9 @@ defmodule AshCsv.DataLayer do
     else
       row =
         Enum.reduce_while(columns(resource), {:ok, []}, fn key, {:ok, row} ->
-          type = Ash.Resource.Info.attribute(resource, key).type
           value = Map.get(changeset.attributes, key)
 
-          case Ash.Type.dump_to_native(type, value) do
-            {:ok, value} ->
-              {:cont, {:ok, [to_string(value) | row]}}
-
-            :error ->
-              {:halt, {:error, "Could not dump #{key} to native type"}}
-          end
+          {:cont, {:ok, [to_string(value) | row]}}
         end)
 
       case row do
