@@ -208,7 +208,7 @@ defmodule AshCsv.DataLayer do
   end
 
   defp stored_value(value, attribute) do
-    if value == "" and Ash.Type.ecto_type(attribute.type) != :string do
+    if value == "" and Ash.Type.ecto_type(attribute.type) not in [:string, :uuid, :binary_id] do
       nil
     else
       value
@@ -373,16 +373,9 @@ defmodule AshCsv.DataLayer do
 
   defp dump_row(resource, changeset, results) do
     Enum.reduce_while(Enum.reverse(columns(resource)), {:ok, []}, fn key, {:ok, row} ->
-      type = Ash.Resource.Info.attribute(resource, key).type
       value = Ash.Changeset.get_attribute(changeset, key)
 
-      case Ash.Type.dump_to_native(type, value) do
-        {:ok, value} ->
-          {:cont, {:ok, [to_string(value) | row]}}
-
-        :error ->
-          {:halt, {:error, "Could not dump #{key} to native type"}}
-      end
+      {:cont, {:ok, [to_string(value) | row]}}
     end)
     |> case do
       {:ok, new_row} ->
