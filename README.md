@@ -11,7 +11,7 @@ A CSV data layer for Ash. Currently only meant for demos. The code is messy, its
 ```elixir
 def deps do
   [
-    {:ash_csv, "~> 0.8.1"}
+    {:ash_csv, "~> 0.8.2"}
   ]
 end
 ```

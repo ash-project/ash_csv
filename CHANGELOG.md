@@ -5,6 +5,19 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.8.2](https://github.com/ash-project/ash_csv/compare/v0.8.1...v0.8.2) (2021-03-29)
+
+
+
+
+### Bug Fixes:
+
+* don't use `dump_to_native`, as CSV is really just string representations
+
+### Improvements:
+
+* update CSV
+
 ## [v0.8.1](https://github.com/ash-project/ash_csv/compare/v0.8.0...v0.8.1) (2021-02-23)
 
 
