@@ -13,7 +13,6 @@ defmodule AshCsv.MixProject do
       start_permanent: Mix.env() == :prod,
       package: package(),
       deps: deps(),
-      test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.github": :test
@@ -76,7 +75,7 @@ defmodule AshCsv.MixProject do
     case System.get_env("ASH_VERSION") do
       nil -> default_version
       "local" -> [path: "../ash"]
-      "master" -> [git: "https://github.com/ash-project/ash.git"]
+      "main" -> [git: "https://github.com/ash-project/ash.git"]
       version -> "~> #{version}"
     end
   end
