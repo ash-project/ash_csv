@@ -3,7 +3,6 @@ defmodule AshCsv.Test.Api do
   use Ash.Api
 
   resources do
-    resource(AshCsv.Test.Post)
-    resource(AshCsv.Test.Comment)
+    registry(AshCsv.Test.Registry)
   end
 end

@@ -17,6 +17,7 @@ defmodule AshCsv.DataLayer do
   def can?(_, :transact), do: true
   def can?(_, :delete_with_query), do: false
   def can?(_, {:filter_expr, _}), do: true
+  def can?(_, :nested_expressions), do: true
   def can?(_, {:sort, _}), do: true
   def can?(_, _), do: false
 
@@ -221,18 +222,23 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def transaction(resource, fun) do
+  def transaction(resource, fun, timeout \\ :infinity) do
     file = file(resource)
 
-    :global.trans({{:csv, file}, System.unique_integer()}, fn ->
-      try do
-        Process.put({:csv_in_transaction, file(resource)}, true)
-        {:res, fun.()}
-      catch
-        {{:csv_rollback, ^file}, value} ->
-          {:error, value}
-      end
-    end)
+    :global.trans(
+      {{:csv, file}, System.unique_integer()},
+      fn ->
+        try do
+          Process.put({:csv_in_transaction, file(resource)}, true)
+          {:res, fun.()}
+        catch
+          {{:csv_rollback, ^file}, value} ->
+            {:error, value}
+        end
+      end,
+      [node() | :erlang.nodes()],
+      timeout
+    )
     |> case do
       {:res, result} -> {:ok, result}
       {:error, error} -> {:error, error}

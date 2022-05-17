@@ -10,10 +10,7 @@ defmodule AshCsv.Test.Post do
   end
 
   actions do
-    read(:read)
-    update(:update)
-    create(:create)
-    destroy(:destroy)
+    defaults([:create, :read, :update, :destroy])
   end
 
   attributes do
