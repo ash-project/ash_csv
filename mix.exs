@@ -1,7 +1,7 @@
 defmodule AshCsv.MixProject do
   use Mix.Project
 
-  @version "0.8.3"
+  @version "0.9.0-rc.0"
 
   @description "A CSV data layer for Ash"
 
@@ -29,10 +29,52 @@ defmodule AshCsv.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
+  defp extras() do
+    "documentation/**/*.md"
+    |> Path.wildcard()
+    |> Enum.map(fn path ->
+      title =
+        path
+        |> Path.basename(".md")
+        |> String.split(~r/[-_]/)
+        |> Enum.map(&String.capitalize/1)
+        |> Enum.join(" ")
+        |> case do
+          "F A Q" ->
+            "FAQ"
+
+          other ->
+            other
+        end
+
+      {String.to_atom(path),
+       [
+         title: title
+       ]}
+    end)
+  end
+
+  defp groups_for_extras() do
+    "documentation/*"
+    |> Path.wildcard()
+    |> Enum.map(fn folder ->
+      name =
+        folder
+        |> Path.basename()
+        |> String.split(~r/[-_]/)
+        |> Enum.map(&String.capitalize/1)
+        |> Enum.join(" ")
+
+      {name, folder |> Path.join("**") |> Path.wildcard()}
+    end)
+  end
+
   defp docs do
     [
       main: "AshCsv",
       source_ref: "v#{@version}",
+      extras: extras(),
+      groups_for_extras: groups_for_extras(),
       logo: "logos/small-logo.png"
     ]
   end
@@ -41,6 +83,8 @@ defmodule AshCsv.MixProject do
     [
       name: :ash_csv,
       licenses: ["MIT"],
+      files: ~w(lib .formatter.exs mix.exs README* LICENSE*
+      CHANGELOG* documentation),
       links: %{
         GitHub: "https://github.com/ash-project/ash_csv"
       }
@@ -57,7 +101,7 @@ defmodule AshCsv.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, ash_version("~> 1.52.0-rc.4")},
+      {:ash, ash_version("~> 2.0.0-rc.0")},
       {:csv, "~> 2.4"},
       {:ex_doc, "~> 0.22", only: :dev, runtime: false},
       {:ex_check, "~> 0.12.0", only: :dev},

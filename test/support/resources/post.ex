@@ -21,6 +21,6 @@ defmodule AshCsv.Test.Post do
   end
 
   relationships do
-    has_many(:comments, AshCsv.Test.Comment, destination_field: :post_id)
+    has_many(:comments, AshCsv.Test.Comment, destination_attribute: :post_id)
   end
 end

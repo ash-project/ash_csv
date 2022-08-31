@@ -2,7 +2,6 @@ defmodule AshCsv.DataLayer do
   @behaviour Ash.DataLayer
 
   alias Ash.Actions.Sort
-  alias Ash.Dsl.Extension
 
   @impl true
   def can?(_, :read), do: true
@@ -15,13 +14,12 @@ defmodule AshCsv.DataLayer do
   def can?(_, :offset), do: true
   def can?(_, :boolean_filter), do: true
   def can?(_, :transact), do: true
-  def can?(_, :delete_with_query), do: false
   def can?(_, {:filter_expr, _}), do: true
   def can?(_, :nested_expressions), do: true
   def can?(_, {:sort, _}), do: true
   def can?(_, _), do: false
 
-  @csv %Ash.Dsl.Section{
+  @csv %Spark.Dsl.Section{
     name: :csv,
     examples: [
       """
@@ -63,27 +61,20 @@ defmodule AshCsv.DataLayer do
     ]
   }
 
-  def file(resource) do
-    resource
-    |> Extension.get_opt([:csv], :file, "", true)
-    |> Path.expand(File.cwd!())
-  end
+  @deprecated "See `AshCsv.DataLayer.Info.file/1"
+  defdelegate file(resource), to: AshCsv.DataLayer.Info
 
-  def columns(resource) do
-    Extension.get_opt(resource, [:csv], :columns, [], true)
-  end
+  @deprecated "See `AshCsv.DataLayer.Info.columns/1"
+  defdelegate columns(resource), to: AshCsv.DataLayer.Info
 
-  def separator(resource) do
-    Extension.get_opt(resource, [:csv], :separator, nil, true)
-  end
+  @deprecated "See `AshCsv.DataLayer.Info.separator/1"
+  defdelegate separator(resource), to: AshCsv.DataLayer.Info
 
-  def header?(resource) do
-    Extension.get_opt(resource, [:csv], :header?, nil, true)
-  end
+  @deprecated "See `AshCsv.DataLayer.Info.header?/1"
+  defdelegate header?(resource), to: AshCsv.DataLayer.Info
 
-  def create?(resource) do
-    Extension.get_opt(resource, [:csv], :create?, nil, true)
-  end
+  @deprecated "See `AshCsv.DataLayer.Info.create?/1"
+  defdelegate create?(resource), to: AshCsv.DataLayer.Info
 
   @impl true
   def limit(query, offset, _), do: {:ok, %{query | limit: offset}}
@@ -125,11 +116,11 @@ defmodule AshCsv.DataLayer do
   The data layer implementation for AshCsv
 
   # Table of Contents
-  #{Ash.Dsl.Extension.doc_index(@sections)}
+  #{Spark.Dsl.Extension.doc_index(@sections)}
 
-  #{Ash.Dsl.Extension.doc(@sections)}
+  #{Spark.Dsl.Extension.doc(@sections)}
   """
-  use Extension, sections: @sections
+  use Spark.Dsl.Extension, sections: @sections
 
   defmodule Query do
     @moduledoc false
