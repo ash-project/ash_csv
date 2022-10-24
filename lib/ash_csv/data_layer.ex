@@ -213,7 +213,7 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def transaction(resource, fun, timeout \\ :infinity) do
+  def transaction(resource, fun, _timeout) do
     file = file(resource)
 
     :global.trans(
@@ -228,7 +228,7 @@ defmodule AshCsv.DataLayer do
         end
       end,
       [node() | :erlang.nodes()],
-      timeout
+      0
     )
     |> case do
       {:res, result} -> {:ok, result}
