@@ -7,6 +7,7 @@ defmodule AshCsv.DataLayer do
   def can?(_, :read), do: true
   def can?(_, :create), do: true
   def can?(_, :update), do: true
+  def can?(_, :upsert), do: true
   def can?(_, :destroy), do: true
   def can?(_, :sort), do: true
   def can?(_, :filter), do: true
@@ -159,7 +160,18 @@ defmodule AshCsv.DataLayer do
   def create(resource, changeset) do
     case run_query(%Query{resource: resource}, resource) do
       {:ok, records} ->
-        create_from_records(records, resource, changeset)
+        create_from_records(records, resource, changeset, false)
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  @impl true
+  def upsert(resource, changeset, keys) do
+    case run_query(%Query{resource: resource}, resource) do
+      {:ok, records} ->
+        create_from_records(records, resource, changeset, keys)
 
       {:error, error} ->
         {:error, error}
@@ -414,7 +426,8 @@ defmodule AshCsv.DataLayer do
     end)
   end
 
-  defp do_read_file(resource) do
+  # sobelow_skip ["Traversal.FileModule"]
+  defp do_read_file(resource, retry? \\ false) do
     amount_to_drop =
       if header?(resource) do
         1
@@ -434,14 +447,36 @@ defmodule AshCsv.DataLayer do
       {:error, error}, _ ->
         {:halt, {:error, error}}
     end)
+  rescue
+    e in File.Error ->
+      if e.reason == :enoent && !retry? do
+        file = file(resource)
+        File.mkdir_p!(Path.dirname(file))
+        File.write!(file(resource), header(resource))
+        do_read_file(resource, true)
+      else
+        reraise e, __STACKTRACE__
+      end
   end
 
   # sobelow_skip ["Traversal.FileModule"]
-  defp create_from_records(records, resource, changeset, retry? \\ false) do
+  defp create_from_records(records, resource, changeset, upsert_keys, retry? \\ false) do
     pkey = Ash.Resource.Info.primary_key(resource)
     pkey_value = Map.take(changeset.attributes, pkey)
 
-    if Enum.any?(records, fn record -> Map.take(record, pkey) == pkey_value end) do
+    upsert_values =
+      if upsert_keys do
+        Map.new(upsert_keys, fn key -> {key, Ash.Changeset.get_attribute(changeset, key)} end)
+      end
+
+    if upsert_keys && Enum.all?(upsert_values, &(not is_nil(elem(&1, 1)))) do
+      if to_destroy =
+           Enum.find(records, fn record -> Map.take(record, upsert_keys) == upsert_values end) do
+        do_destroy({:ok, records}, resource, to_destroy)
+      end
+    end
+
+    if Enum.find(records, fn record -> Map.take(record, pkey) == pkey_value end) do
       {:error, "Record is not unique"}
     else
       row =
@@ -458,27 +493,66 @@ defmodule AshCsv.DataLayer do
             |> CSV.encode(separator: separator(resource))
             |> Enum.to_list()
 
-          resource
-          |> file()
-          |> File.write(lines, [:append])
-          |> case do
-            :ok ->
-              {:ok, struct(resource, changeset.attributes)}
+          result =
+            if File.exists?(file(resource)) do
+              :ok
+            else
+              if create?(resource) do
+                File.mkdir_p!(Path.dirname(file(resource)))
+                File.write!(file(resource), header(resource))
+                :ok
+              else
+                {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+              end
+            end
 
-            {:error, :enoent} when retry? ->
-              {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
-
-            {:error, :enoent} ->
-              File.mkdir_p!(Path.dirname(file(resource)))
-              create_from_records(records, resource, changeset, true)
-
+          case result do
             {:error, error} ->
-              {:error, "Error while writing to CSV: #{inspect(error)}"}
+              {:error, error}
+
+            :ok ->
+              resource
+              |> file()
+              |> File.write(lines, [:append])
+              |> case do
+                :ok ->
+                  {:ok, struct(resource, changeset.attributes)}
+
+                {:error, :enoent} when retry? ->
+                  {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+
+                {:error, :enoent} ->
+                  if create?(resource) do
+                    create_from_records(records, resource, changeset, upsert_keys, true)
+                  else
+                    {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+                  end
+
+                {:error, error} ->
+                  {:error, "Error while writing to CSV: #{inspect(error)}"}
+              end
           end
 
         {:error, error} ->
           {:error, error}
       end
+    end
+  end
+
+  defp header(resource) do
+    if header?(resource) do
+      separator =
+        case separator(resource) do
+          sep when is_integer(sep) ->
+            <<sep>>
+
+          sep ->
+            to_string(sep)
+        end
+
+      resource |> columns() |> Enum.join(separator) |> Kernel.<>("\n")
+    else
+      ""
     end
   end
 end
