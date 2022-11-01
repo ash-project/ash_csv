@@ -291,6 +291,13 @@ defmodule AshCsv.DataLayer do
           |> CSV.encode(separator: separator(resource))
           |> Enum.to_list()
 
+        lines =
+          if header?(resource) do
+            [header(resource) | lines]
+          else
+            lines
+          end
+
         resource
         |> file()
         |> File.write(lines, [:write])
@@ -352,6 +359,25 @@ defmodule AshCsv.DataLayer do
           rows
           |> CSV.encode(separator: separator(resource))
           |> Enum.to_list()
+
+        if File.exists?(file(resource)) do
+          :ok
+        else
+          if create?(resource) do
+            File.mkdir_p!(Path.dirname(file(resource)))
+            File.write!(file(resource), header(resource))
+            :ok
+          else
+            {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+          end
+        end
+
+        lines =
+          if header?(resource) do
+            [header(resource) | lines]
+          else
+            lines
+          end
 
         resource
         |> file()
@@ -469,12 +495,17 @@ defmodule AshCsv.DataLayer do
         Map.new(upsert_keys, fn key -> {key, Ash.Changeset.get_attribute(changeset, key)} end)
       end
 
-    if upsert_keys && Enum.all?(upsert_values, &(not is_nil(elem(&1, 1)))) do
-      if to_destroy =
-           Enum.find(records, fn record -> Map.take(record, upsert_keys) == upsert_values end) do
-        do_destroy({:ok, records}, resource, to_destroy)
+    records =
+      if upsert_keys && Enum.all?(upsert_values, &(not is_nil(elem(&1, 1)))) do
+        {to_destroy, records} =
+          Enum.split_with(records, fn record -> Map.take(record, upsert_keys) == upsert_values end)
+
+        Enum.map(to_destroy, fn to_destroy -> destroy(resource, %{data: to_destroy}) end)
+
+        records
+      else
+        records
       end
-    end
 
     if Enum.find(records, fn record -> Map.take(record, pkey) == pkey_value end) do
       {:error, "Record is not unique"}
