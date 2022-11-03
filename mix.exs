@@ -128,6 +128,7 @@ defmodule AshCsv.MixProject do
     [
       sobelow: "sobelow --skip",
       credo: "credo --strict",
+      docs: ["docs", "ash.replace_doc_links"],
       "spark.formatter": "spark.formatter --extensions AshCsv.DataLayer"
     ]
   end
