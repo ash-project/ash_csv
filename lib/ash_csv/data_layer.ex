@@ -500,7 +500,7 @@ defmodule AshCsv.DataLayer do
         {to_destroy, records} =
           Enum.split_with(records, fn record -> Map.take(record, upsert_keys) == upsert_values end)
 
-        Enum.map(to_destroy, fn to_destroy -> destroy(resource, %{data: to_destroy}) end)
+        Enum.each(to_destroy, fn to_destroy -> destroy(resource, %{data: to_destroy}) end)
 
         records
       else
