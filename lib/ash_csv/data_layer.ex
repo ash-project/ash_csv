@@ -225,7 +225,7 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def transaction(resource, fun, _timeout) do
+  def transaction(resource, fun, _timeout, _) do
     file = file(resource)
 
     :global.trans(
