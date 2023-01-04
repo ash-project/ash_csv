@@ -262,7 +262,8 @@ defmodule AshCsv.DataLayer do
   def filter_matches(records, nil), do: records
 
   def filter_matches(records, filter) do
-    Enum.filter(records, &Ash.Filter.Runtime.matches?(nil, &1, filter.expression))
+    {:ok, records} = Ash.Filter.Runtime.filter_matches(nil, records, filter)
+    records
   end
 
   # sobelow_skip ["Traversal.FileModule"]
