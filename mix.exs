@@ -73,8 +73,24 @@ defmodule AshCsv.MixProject do
     [
       main: "AshCsv",
       source_ref: "v#{@version}",
+      spark: [
+        extensions: [
+          %{
+            module: AshCsv.DataLayer,
+            name: "AshCsv",
+            target: "Ash.Resource",
+            type: "DataLayer"
+          }
+        ]
+      ],
       extras: extras(),
       groups_for_extras: groups_for_extras(),
+      groups_for_modules: [
+        Introspection: [
+          AshCsv.DataLayer.Info
+        ],
+        Internals: ~r/.*/
+      ],
       logo: "logos/small-logo.png"
     ]
   end
