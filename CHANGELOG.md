@@ -5,6 +5,27 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.9.2](https://github.com/ash-project/ash_csv/compare/v0.9.1...v0.9.2) (2023-01-18)
+
+
+
+
+### Bug Fixes:
+
+* properly set header when creating file
+
+### Improvements:
+
+* update ash and new docs patterns
+
+* support latest ash
+
+* update ash and update behavior function
+
+* use new docs
+
+* better behavior around creating missing files
+
 ## [v0.9.1](https://github.com/ash-project/ash_csv/compare/v0.9.0-rc.0...v0.9.1) (2022-10-24)
 
 

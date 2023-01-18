@@ -10,7 +10,7 @@ A CSV data layer for Ash. Currently only meant for demos. The code is messy, its
 ```elixir
 def deps do
   [
-    {:ash_csv, "~> 0.9.1"}
+    {:ash_csv, "~> 0.9.2"}
   ]
 end
 ```
