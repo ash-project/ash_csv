@@ -119,12 +119,12 @@ defmodule AshCsv.MixProject do
     [
       {:ash, ash_version("~> 2.0")},
       {:csv, "~> 2.4"},
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
-      {:ex_check, "~> 0.12.0", only: :dev},
-      {:credo, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
-      {:sobelow, ">= 0.0.0", only: :dev, runtime: false},
-      {:git_ops, "~> 2.0.1", only: :dev},
+      {:ex_doc, "~> 0.22", only: [:dev, :test], runtime: false},
+      {:ex_check, "~> 0.12.0", only: [:dev, :test]},
+      {:credo, ">= 0.0.0", only: [:dev, :test], runtime: false},
+      {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
+      {:sobelow, ">= 0.0.0", only: [:dev, :test], runtime: false},
+      {:git_ops, "~> 2.0.1", only: [:dev, :test]},
       {:excoveralls, "~> 0.13.0", only: [:dev, :test]}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
