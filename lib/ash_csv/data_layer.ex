@@ -125,7 +125,7 @@ defmodule AshCsv.DataLayer do
 
   defmodule Query do
     @moduledoc false
-    defstruct [:resource, :sort, :filter, :limit, :offset]
+    defstruct [:resource, :sort, :filter, :limit, :offset, :api]
   end
 
   @impl true
@@ -134,8 +134,8 @@ defmodule AshCsv.DataLayer do
       {:ok, results} ->
         offset_records =
           results
-          |> filter_matches(query.filter)
-          |> Sort.runtime_sort(query.sort)
+          |> filter_matches(query.filter, query.api)
+          |> Sort.runtime_sort(query.sort, api: query.api)
           |> Enum.drop(query.offset || 0)
 
         if query.limit do
@@ -220,8 +220,8 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def resource_to_query(resource, _) do
-    %Query{resource: resource}
+  def resource_to_query(resource, api) do
+    %Query{resource: resource, api: api}
   end
 
   @impl true
@@ -259,10 +259,10 @@ defmodule AshCsv.DataLayer do
     Process.get({:csv_in_transaction, file(resource)}, false) == true
   end
 
-  def filter_matches(records, nil), do: records
+  def filter_matches(records, nil, _api), do: records
 
-  def filter_matches(records, filter) do
-    {:ok, records} = Ash.Filter.Runtime.filter_matches(nil, records, filter)
+  def filter_matches(records, filter, api) do
+    {:ok, records} = Ash.Filter.Runtime.filter_matches(api, records, filter)
     records
   end
 
