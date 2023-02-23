@@ -3,7 +3,7 @@
 [![Hex version badge](https://img.shields.io/hexpm/v/ash_csv.svg)](https://hex.pm/packages/ash_csv)
 # AshCsv
 
-A CSV data layer for Ash. Currently only meant for demos. The code is messy, its not made to scale, and it doesn't have code for handling most primitive types.
+A CSV data layer for Ash. 
 
 ## Installation
 
