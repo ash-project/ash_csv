@@ -5,7 +5,7 @@ defmodule AshCsv.Test.Post do
 
   csv do
     create? true
-    columns [:id, :title, :score, :public]
+    columns [:id, :title, :score, :public, :unique]
     file "test/data_files/posts.csv"
   end
 
@@ -18,6 +18,11 @@ defmodule AshCsv.Test.Post do
     attribute(:title, :string)
     attribute(:score, :integer)
     attribute(:public, :boolean)
+    attribute(:unique, :string)
+  end
+
+  identities do
+    identity :unique_unique, [:unique]
   end
 
   relationships do

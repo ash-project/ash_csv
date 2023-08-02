@@ -17,6 +17,19 @@ defmodule AshCsvTest do
     assert [%{title: "title"}] = Api.read!(Post)
   end
 
+  test "resources can be upserted" do
+    Post
+    |> Ash.Changeset.new(%{title: "title", unique: "foo"})
+    |> Api.create!()
+
+    Post
+    |> Ash.Changeset.new(%{title: "new_title", unique: "foo"})
+    |> Api.create!(upsert?: true, upsert_identity: :unique_unique)
+
+    assert [%{title: "new_title"}] = Api.read!(Post)
+  end
+
+
   test "a resource can be updated" do
     post =
       Post

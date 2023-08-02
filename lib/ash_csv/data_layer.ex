@@ -169,12 +169,44 @@ defmodule AshCsv.DataLayer do
 
   @impl true
   def upsert(resource, changeset, keys) do
-    case run_query(%Query{resource: resource}, resource) do
-      {:ok, records} ->
-        create_from_records(records, resource, changeset, keys)
+    pkey = Ash.Resource.Info.primary_key(resource)
+    keys = keys || pkey
 
-      {:error, error} ->
-        {:error, error}
+    if Enum.any?(keys, &is_nil(Ash.Changeset.get_attribute(changeset, &1))) do
+      create(resource, changeset)
+    else
+      key_filters =
+        Enum.map(keys, fn key ->
+          {key,
+           Ash.Changeset.get_attribute(changeset, key) || Map.get(changeset.params, key) ||
+             Map.get(changeset.params, to_string(key))}
+        end)
+
+      query = Ash.Query.do_filter(resource, and: [key_filters])
+
+      resource
+      |> resource_to_query(changeset.api)
+      |> Map.put(:filter, query.filter)
+      |> Map.put(:tenant, changeset.tenant)
+      |> run_query(resource)
+      |> case do
+        {:ok, []} ->
+          create(resource, changeset)
+
+        {:ok, [result]} ->
+          to_set = Ash.Changeset.set_on_upsert(changeset, keys)
+
+          changeset =
+            changeset
+            |> Map.put(:attributes, %{})
+            |> Map.put(:data, result)
+            |> Ash.Changeset.force_change_attributes(to_set)
+
+          update(resource, changeset)
+
+        {:ok, _} ->
+          {:error, "Multiple records matching keys"}
+      end
     end
   end
 
