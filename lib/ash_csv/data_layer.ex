@@ -519,26 +519,9 @@ defmodule AshCsv.DataLayer do
   end
 
   # sobelow_skip ["Traversal.FileModule"]
-  defp create_from_records(records, resource, changeset, upsert_keys, retry? \\ false) do
+  defp create_from_records(records, resource, changeset, retry? \\ false) do
     pkey = Ash.Resource.Info.primary_key(resource)
     pkey_value = Map.take(changeset.attributes, pkey)
-
-    upsert_values =
-      if upsert_keys do
-        Map.new(upsert_keys, fn key -> {key, Ash.Changeset.get_attribute(changeset, key)} end)
-      end
-
-    records =
-      if upsert_keys && Enum.all?(upsert_values, &(not is_nil(elem(&1, 1)))) do
-        {to_destroy, records} =
-          Enum.split_with(records, fn record -> Map.take(record, upsert_keys) == upsert_values end)
-
-        Enum.each(to_destroy, fn to_destroy -> destroy(resource, %{data: to_destroy}) end)
-
-        records
-      else
-        records
-      end
 
     if Enum.find(records, fn record -> Map.take(record, pkey) == pkey_value end) do
       {:error, "Record is not unique"}
@@ -587,7 +570,7 @@ defmodule AshCsv.DataLayer do
 
                 {:error, :enoent} ->
                   if create?(resource) do
-                    create_from_records(records, resource, changeset, upsert_keys, true)
+                    create_from_records(records, resource, changeset, true)
                   else
                     {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
                   end
