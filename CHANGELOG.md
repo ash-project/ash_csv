@@ -5,6 +5,17 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.9.3](https://github.com/ash-project/ash_csv/compare/v0.9.2...v0.9.3) (2023-08-02)
+
+
+
+
+### Bug Fixes:
+
+* fix upsert behavior
+
+* support latest ash
+
 ## [v0.9.2](https://github.com/ash-project/ash_csv/compare/v0.9.1...v0.9.2) (2023-01-18)
 
 
