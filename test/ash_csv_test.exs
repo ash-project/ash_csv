@@ -29,7 +29,6 @@ defmodule AshCsvTest do
     assert [%{title: "new_title"}] = Api.read!(Post)
   end
 
-
   test "a resource can be updated" do
     post =
       Post

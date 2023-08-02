@@ -22,7 +22,7 @@ defmodule AshCsv.Test.Post do
   end
 
   identities do
-    identity :unique_unique, [:unique]
+    identity(:unique_unique, [:unique])
   end
 
   relationships do
