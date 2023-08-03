@@ -519,7 +519,7 @@ defmodule AshCsv.DataLayer do
   end
 
   # sobelow_skip ["Traversal.FileModule"]
-  defp create_from_records(records, resource, changeset, retry? \\ false) do
+  defp create_from_records(records, resource, changeset, retry?) do
     pkey = Ash.Resource.Info.primary_key(resource)
     pkey_value = Map.take(changeset.attributes, pkey)
 
