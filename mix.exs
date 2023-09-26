@@ -30,15 +30,16 @@ defmodule AshCsv.MixProject do
   defp elixirc_paths(_), do: ["lib"]
 
   defp extras() do
-    "documentation/**/*.md"
+    "documentation/**/*.{md,cheatmd,livemd}"
     |> Path.wildcard()
     |> Enum.map(fn path ->
       title =
         path
         |> Path.basename(".md")
+        |> Path.basename(".livemd")
+        |> Path.basename(".cheatmd")
         |> String.split(~r/[-_]/)
-        |> Enum.map(&String.capitalize/1)
-        |> Enum.join(" ")
+        |> Enum.map_join(" ", &capitalize/1)
         |> case do
           "F A Q" ->
             "FAQ"
@@ -54,24 +55,27 @@ defmodule AshCsv.MixProject do
     end)
   end
 
-  defp groups_for_extras() do
-    "documentation/*"
-    |> Path.wildcard()
-    |> Enum.map(fn folder ->
-      name =
-        folder
-        |> Path.basename()
-        |> String.split(~r/[-_]/)
-        |> Enum.map(&String.capitalize/1)
-        |> Enum.join(" ")
-
-      {name, folder |> Path.join("**") |> Path.wildcard()}
+  defp capitalize(string) do
+    string
+    |> String.split(" ")
+    |> Enum.map(fn string ->
+      [hd | tail] = String.graphemes(string)
+      String.capitalize(hd) <> Enum.join(tail)
     end)
+  end
+
+  defp groups_for_extras() do
+    [
+      Tutorials: ~r'documentation/tutorials',
+      "How To": ~r'documentation/how_to',
+      Topics: ~r'documentation/topics',
+      DSLs: ~r'documentation/dsls'
+    ]
   end
 
   defp docs do
     [
-      main: "AshCsv",
+      main: "get-started-with-csv",
       source_ref: "v#{@version}",
       spark: [
         extensions: [
@@ -144,8 +148,15 @@ defmodule AshCsv.MixProject do
     [
       sobelow: "sobelow --skip",
       credo: "credo --strict",
-      docs: ["docs", "ash.replace_doc_links"],
-      "spark.formatter": "spark.formatter --extensions AshCsv.DataLayer"
+      docs: [
+        "spark.cheat_sheets",
+        "docs",
+        "ash.replace_doc_links",
+        "spark.cheat_sheets_in_search"
+      ],
+      "spark.formatter": "spark.formatter --extensions AshCsv.DataLayer",
+      "spark.cheat_sheets": "spark.cheat_sheets --extensions AshCsv.DataLayer",
+      "spark.cheat_sheets_in_search": "spark.cheat_sheets_in_search --extensions AshCsv.DataLayer"
     ]
   end
 end
