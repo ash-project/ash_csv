@@ -77,6 +77,13 @@ defmodule AshCsv.MixProject do
     [
       main: "get-started-with-csv",
       source_ref: "v#{@version}",
+      before_closing_head_tag: fn type ->
+        if type == :html do
+          """
+          <script defer data-domain="ashhexdocs" src="https://plausible.io/js/script.js"></script>
+          """
+        end
+      end,
       spark: [
         extensions: [
           %{
