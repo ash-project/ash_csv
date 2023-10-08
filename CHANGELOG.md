@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.9.6](https://github.com/ash-project/ash_csv/compare/v0.9.5...v0.9.6) (2023-10-08)
+
+
+
+
+### Bug Fixes:
+
+* `ash_csv` doesn't support don't do expression calculations
+
 ## [v0.9.5](https://github.com/ash-project/ash_csv/compare/v0.9.4...v0.9.5) (2023-10-05)
 
 
