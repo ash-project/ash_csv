@@ -18,7 +18,6 @@ defmodule AshCsv.DataLayer do
   def can?(_, {:filter_expr, _}), do: true
   def can?(_, :nested_expressions), do: true
   def can?(_, :expression_calculation_sort), do: true
-  def can?(_, :expression_calculation), do: true
   def can?(_, {:sort, _}), do: true
   def can?(_, _), do: false
 
