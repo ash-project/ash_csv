@@ -29,50 +29,6 @@ defmodule AshCsv.MixProject do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp extras() do
-    "documentation/**/*.{md,cheatmd,livemd}"
-    |> Path.wildcard()
-    |> Enum.map(fn path ->
-      title =
-        path
-        |> Path.basename(".md")
-        |> Path.basename(".livemd")
-        |> Path.basename(".cheatmd")
-        |> String.split(~r/[-_]/)
-        |> Enum.map_join(" ", &capitalize/1)
-        |> case do
-          "F A Q" ->
-            "FAQ"
-
-          other ->
-            other
-        end
-
-      {String.to_atom(path),
-       [
-         title: title
-       ]}
-    end)
-  end
-
-  defp capitalize(string) do
-    string
-    |> String.split(" ")
-    |> Enum.map(fn string ->
-      [hd | tail] = String.graphemes(string)
-      String.capitalize(hd) <> Enum.join(tail)
-    end)
-  end
-
-  defp groups_for_extras() do
-    [
-      Tutorials: ~r'documentation/tutorials',
-      "How To": ~r'documentation/how_to',
-      Topics: ~r'documentation/topics',
-      DSLs: ~r'documentation/dsls'
-    ]
-  end
-
   defp docs do
     [
       main: "get-started-with-csv",
@@ -92,19 +48,21 @@ defmodule AshCsv.MixProject do
           """
         end
       end,
-      spark: [
-        extensions: [
-          %{
-            module: AshCsv.DataLayer,
-            name: "AshCsv",
-            target: "Ash.Resource",
-            type: "DataLayer"
-          }
-        ]
+      extras: [
+        "documentation/tutorials/get-started-with-csv.md",
+        "documentation/dsls/DSL:-AshCsv.DataLayer.md"
       ],
-      extras: extras(),
-      groups_for_extras: groups_for_extras(),
+      groups_for_extras: [
+        Tutorials: ~r'documentation/tutorials',
+        "How To": ~r'documentation/how_to',
+        Topics: ~r'documentation/topics',
+        DSLs: ~r'documentation/dsls'
+      ],
       groups_for_modules: [
+        AshCsv: [
+          AshCsv,
+          AshCsv.DataLayer
+        ],
         Introspection: [
           AshCsv.DataLayer.Info
         ],
