@@ -94,17 +94,15 @@ defmodule AshCsv.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, ash_version("~> 2.6")},
-      {:csv, "~> 2.4"},
+      {:ash, ash_version("~> 3.0.0-rc.0")},
+      {:csv, "~> 3.0"},
       {:ex_doc, github: "elixir-lang/ex_doc", only: [:dev, :test], runtime: false},
-      {:ex_check, "~> 0.12.0", only: [:dev, :test]},
+      {:ex_check, "~> 0.12", only: [:dev, :test]},
       {:credo, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:sobelow, ">= 0.0.0", only: [:dev, :test], runtime: false},
-      {:git_ops, "~> 2.0.1", only: [:dev, :test]},
-      {:excoveralls, "~> 0.13.0", only: [:dev, :test]}
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:git_ops, "~> 2.5", only: [:dev, :test]},
+      {:excoveralls, "~> 0.13", only: [:dev, :test]}
     ]
   end
 
@@ -124,7 +122,7 @@ defmodule AshCsv.MixProject do
       docs: [
         "spark.cheat_sheets",
         "docs",
-        "ash.replace_doc_links",
+        "spark.replace_doc_links",
         "spark.cheat_sheets_in_search"
       ],
       "spark.formatter": "spark.formatter --extensions AshCsv.DataLayer",

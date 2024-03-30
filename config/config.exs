@@ -1,7 +1,8 @@
 import Config
 
-config :ash, :validate_api_resource_inclusion?, false
-config :ash, :validate_api_config_inclusion?, false
+config :ash, :validate_domain_resource_inclusion?, false
+config :ash, :validate_domain_config_inclusion?, false
+config :ash, :missed_notifications, :ignore
 
 if Mix.env() == :dev do
   config :git_ops,

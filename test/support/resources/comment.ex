@@ -1,6 +1,7 @@
 defmodule AshCsv.Test.Comment do
   @moduledoc false
   use Ash.Resource,
+    domain: AshCsv.Test.Domain,
     data_layer: AshCsv.DataLayer
 
   csv do
@@ -10,15 +11,16 @@ defmodule AshCsv.Test.Comment do
   end
 
   actions do
+    default_accept(:*)
     defaults([:create, :read, :update, :destroy])
   end
 
   attributes do
     uuid_primary_key(:id)
-    attribute(:title, :string)
+    attribute(:title, :string, public?: true)
   end
 
   relationships do
-    belongs_to(:post, AshCsv.Test.Post)
+    belongs_to(:post, AshCsv.Test.Post, public?: true)
   end
 end

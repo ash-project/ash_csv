@@ -1,6 +1,7 @@
 defmodule AshCsv.Test.Post do
   @moduledoc false
   use Ash.Resource,
+    domain: AshCsv.Test.Domain,
     data_layer: AshCsv.DataLayer
 
   csv do
@@ -10,15 +11,16 @@ defmodule AshCsv.Test.Post do
   end
 
   actions do
+    default_accept(:*)
     defaults([:create, :read, :update, :destroy])
   end
 
   attributes do
     uuid_primary_key(:id)
-    attribute(:title, :string)
-    attribute(:score, :integer)
-    attribute(:public, :boolean)
-    attribute(:unique, :string)
+    attribute(:title, :string, public?: true)
+    attribute(:score, :integer, public?: true)
+    attribute(:public, :boolean, public?: true)
+    attribute(:unique, :string, public?: true)
   end
 
   identities do
@@ -26,6 +28,6 @@ defmodule AshCsv.Test.Post do
   end
 
   relationships do
-    has_many(:comments, AshCsv.Test.Comment, destination_attribute: :post_id)
+    has_many(:comments, AshCsv.Test.Comment, destination_attribute: :post_id, public?: true)
   end
 end

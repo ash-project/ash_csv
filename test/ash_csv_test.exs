@@ -1,6 +1,6 @@
 defmodule AshCsvTest do
   use ExUnit.Case, async: false
-  alias AshCsv.Test.{Api, Post}
+  alias AshCsv.Test.Post
   require Ash.Query
 
   setup do
@@ -11,66 +11,66 @@ defmodule AshCsvTest do
 
   test "resources can be created" do
     Post
-    |> Ash.Changeset.new(%{title: "title"})
-    |> Api.create!()
+    |> Ash.Changeset.for_create(:create, %{title: "title"})
+    |> Ash.create!()
 
-    assert [%{title: "title"}] = Api.read!(Post)
+    assert [%{title: "title"}] = Ash.read!(Post)
   end
 
   test "resources can be upserted" do
     Post
-    |> Ash.Changeset.new(%{title: "title", unique: "foo"})
-    |> Api.create!()
+    |> Ash.Changeset.for_create(:create, %{title: "title", unique: "foo"})
+    |> Ash.create!()
 
     Post
-    |> Ash.Changeset.new(%{title: "new_title", unique: "foo"})
-    |> Api.create!(upsert?: true, upsert_identity: :unique_unique)
+    |> Ash.Changeset.for_create(:create, %{title: "new_title", unique: "foo"})
+    |> Ash.create!(upsert?: true, upsert_identity: :unique_unique)
 
-    assert [%{title: "new_title"}] = Api.read!(Post)
+    assert [%{title: "new_title"}] = Ash.read!(Post)
   end
 
   test "a resource can be updated" do
     post =
       Post
-      |> Ash.Changeset.new(%{title: "title"})
-      |> Api.create!()
+      |> Ash.Changeset.for_create(:create, %{title: "title"})
+      |> Ash.create!()
 
     post
-    |> Ash.Changeset.new(%{title: "new_title"})
-    |> Api.update!()
+    |> Ash.Changeset.for_update(:update, %{title: "new_title"})
+    |> Ash.update!()
 
-    assert [%{title: "new_title"}] = Api.read!(Post)
+    assert [%{title: "new_title"}] = Ash.read!(Post)
   end
 
   test "a resource can be deleted" do
     post =
       Post
-      |> Ash.Changeset.new(%{title: "title"})
-      |> Api.create!()
+      |> Ash.Changeset.for_create(:create, %{title: "title"})
+      |> Ash.create!()
 
-    Api.destroy!(post)
+    Ash.destroy!(post)
 
-    assert [] = Api.read!(Post)
+    assert [] = Ash.read!(Post)
   end
 
   test "filters/sorts can be applied" do
     Post
-    |> Ash.Changeset.new(%{title: "title1"})
-    |> Api.create!()
+    |> Ash.Changeset.for_create(:create, %{title: "title1"})
+    |> Ash.create!()
 
     Post
-    |> Ash.Changeset.new(%{title: "title2"})
-    |> Api.create!()
+    |> Ash.Changeset.for_create(:create, %{title: "title2"})
+    |> Ash.create!()
 
     Post
-    |> Ash.Changeset.new(%{title: "title3"})
-    |> Api.create!()
+    |> Ash.Changeset.for_create(:create, %{title: "title3"})
+    |> Ash.create!()
 
     results =
       Post
       |> Ash.Query.filter(title in ["title1", "title2"])
       |> Ash.Query.sort(:title)
-      |> Api.read!()
+      |> Ash.read!()
 
     assert [%{title: "title1"}, %{title: "title2"}] = results
   end

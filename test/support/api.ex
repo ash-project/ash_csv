@@ -1,8 +1,9 @@
-defmodule AshCsv.Test.Api do
+defmodule AshCsv.Test.Domain do
   @moduledoc false
-  use Ash.Api
+  use Ash.Domain
 
   resources do
-    registry(AshCsv.Test.Registry)
+    resource(AshCsv.Test.Post)
+    resource(AshCsv.Test.Comment)
   end
 end
