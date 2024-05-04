@@ -12,7 +12,7 @@ Welcome! This is the CSV Data Layer for [Ash Framework](https://hexdocs.pm/ash).
 
 ## Tutorials
 
-- [Getting Started with GraphQL](documentation/tutorials/getting-started-with-ash-csv.md)
+- [Getting Started with AshCsv](documentation/tutorials/getting-started-with-ash-csv.md)
 
 ## Reference
 
