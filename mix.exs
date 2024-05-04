@@ -3,7 +3,7 @@ defmodule AshCsv.MixProject do
 
   @version "0.9.7-rc.0"
 
-  @description "A CSV data layer for Ash"
+  @description "The CSV data layer for Ash Framework"
 
   def project do
     [
@@ -31,7 +31,7 @@ defmodule AshCsv.MixProject do
 
   defp docs do
     [
-      main: "get-started-with-csv",
+      main: "readme",
       source_ref: "v#{@version}",
       before_closing_head_tag: fn type ->
         if type == :html do
@@ -49,7 +49,8 @@ defmodule AshCsv.MixProject do
         end
       end,
       extras: [
-        "documentation/tutorials/get-started-with-csv.md",
+        {"README.md", title: "Home"},
+        "documentation/tutorials/getting-started-with-ash-csv.md",
         "documentation/dsls/DSL:-AshCsv.DataLayer.md"
       ],
       groups_for_extras: [

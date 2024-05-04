@@ -1,20 +1,19 @@
-![Elixir CI](https://github.com/ash-project/ash_csv/workflows/Ash%20CI/badge.svg)
+![Logo](https://github.com/ash-project/ash/blob/main/logos/cropped-for-header-black-text.png?raw=true#gh-light-mode-only)
+![Logo](https://github.com/ash-project/ash/blob/main/logos/cropped-for-header-white-text.png?raw=true#gh-dark-mode-only)
+
+![Elixir CI](https://github.com/ash-project/ash_csv/workflows/CI/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Hex version badge](https://img.shields.io/hexpm/v/ash_csv.svg)](https://hex.pm/packages/ash_csv)
+[![Hexdocs badge](https://img.shields.io/badge/docs-hexdocs-purple)](https://hexdocs.pm/ash_csv)
+
 # AshCsv
 
-A CSV data layer for Ash. 
+Welcome! This is the CSV Data Layer for [Ash Framework](https://hexdocs.pm/ash).
 
-## Installation
+## Tutorials
 
-```elixir
-def deps do
-  [
-    {:ash_csv, "~> 0.9.7-rc.0"}
-  ]
-end
-```
+- [Getting Started with GraphQL](documentation/tutorials/getting-started-with-ash-csv.md)
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/ash_csv](https://hexdocs.pm/ash_csv).
+## Reference
+
+- [AshCsv.DataLayer DSL](documentation/dsls/DSL:-AshCsv.DataLayer.md)
