@@ -202,17 +202,10 @@ defmodule AshCsv.DataLayer do
             if pkey_value in record_pkeys do
               {:halt, {:error, "Record #{inspect(pkey_value)} is not unique"}}
             else
-              row =
-                Enum.reduce_while(columns(resource), {:ok, []}, fn key, {:ok, row} ->
-                  value = Map.get(changeset.attributes, key)
-
-                  {:cont, {:ok, [to_string(value) | row]}}
-                end)
-
-              case row do
+              case dump_row(resource, changeset) do
                 {:ok, row} ->
                   lines =
-                    [Enum.reverse(row)]
+                    [row]
                     |> CSV.encode(separator: separator(resource))
                     |> Enum.to_list()
 
@@ -559,55 +552,40 @@ defmodule AshCsv.DataLayer do
     results =
       resource
       |> file()
-      |> File.stream!()
-      |> Stream.drop(amount_to_drop)
-      |> CSV.decode(separator: separator(resource))
-      |> then(fn csv_stream ->
-        cond do
-          decode? && is_nil(filter) && sort in [nil, []] ->
-            csv_stream
-            |> offset_stream(offset)
-            |> limit_stream(limit)
-            |> Stream.map(fn
-              {:error, error} ->
-                throw({:error, error})
+      |> then(fn file ->
+        if decode? do
+          file
+          |> File.stream!()
+          |> Stream.drop(amount_to_drop)
+          |> CSV.decode(separator: separator(resource))
+          |> Stream.map(fn
+            {:error, error} ->
+              throw({:error, error})
 
-              {:ok, row} ->
-                case cast_stored(resource, row) do
-                  {:ok, casted} -> casted
-                  {:error, error} -> throw({:error, error})
-                end
-            end)
-            |> Enum.to_list()
+            {:ok, row} ->
+              case cast_stored(resource, row) do
+                {:ok, casted} -> casted
+                {:error, error} -> throw({:error, error})
+              end
+          end)
+          |> filter_stream(domain, filter)
+          |> sort_stream(resource, domain, sort)
+          |> offset_stream(offset)
+          |> limit_stream(limit)
+          |> Enum.to_list()
+        else
+          file
+          |> File.stream!()
+          |> Stream.drop(amount_to_drop)
+          |> CSV.decode(separator: separator(resource))
+          |> Stream.map(fn
+            {:error, error} ->
+              throw({:error, error})
 
-          decode? ->
-            csv_stream
-            |> Stream.map(fn
-              {:error, error} ->
-                throw({:error, error})
-
-              {:ok, row} ->
-                case cast_stored(resource, row) do
-                  {:ok, casted} -> casted
-                  {:error, error} -> throw({:error, error})
-                end
-            end)
-            |> filter_stream(domain, filter)
-            |> sort_stream(resource, domain, sort)
-            |> offset_stream(offset)
-            |> limit_stream(limit)
-            |> Enum.to_list()
-
-          true ->
-            csv_stream
-            |> Stream.map(fn
-              {:error, error} ->
-                throw({:error, error})
-
-              {:ok, row} ->
-                row
-            end)
-            |> Enum.to_list()
+            {:ok, row} ->
+              row
+          end)
+          |> Enum.to_list()
         end
       end)
 

@@ -45,7 +45,7 @@ defmodule AshCsv.DataLayer.Transformers.BuildParser do
               :error ->
                 throw(
                   {:error,
-                   "stored value for #{unquote(column)} could not be cast to type #{unquote(Macro.escape(attribute.type))}: #{inspect(value)}"}
+                   "stored value for #{unquote(column)} could not be casted from the stored value to type #{unquote(inspect(Macro.escape(attribute.type)))}: #{inspect(value)}"}
                 )
             end
         end
@@ -60,7 +60,7 @@ defmodule AshCsv.DataLayer.Transformers.BuildParser do
           value = unquote(matcher)
 
           unquote(matcher) =
-            case Ash.Type.dump_to_native(
+            case Ash.Type.dump_to_embedded(
                    unquote(Macro.escape(attribute.type)),
                    value,
                    unquote(Macro.escape(attribute.constraints))
@@ -71,7 +71,7 @@ defmodule AshCsv.DataLayer.Transformers.BuildParser do
               :error ->
                 throw(
                   {:error,
-                   "stored value for #{unquote(column)} could not be cast to type #{unquote(Macro.escape(attribute.type))}: #{inspect(value)}"}
+                   "stored value for #{unquote(column)} could not be dumped to type #{inspect(unquote(Macro.escape(attribute.type)))}: #{inspect(value)}"}
                 )
             end
         end
