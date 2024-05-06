@@ -14,6 +14,7 @@ defmodule AshCsv.DataLayer do
   def can?(_, :sort), do: true
   def can?(_, :filter), do: true
   def can?(_, :limit), do: true
+  def can?(_, :bulk_create), do: true
   def can?(_, :offset), do: true
   def can?(_, :boolean_filter), do: true
   def can?(_, :transact), do: true
@@ -119,7 +120,9 @@ defmodule AshCsv.DataLayer do
   @moduledoc """
   The data layer implementation for AshCsv
   """
-  use Spark.Dsl.Extension, sections: @sections
+  use Spark.Dsl.Extension,
+    sections: @sections,
+    persisters: [AshCsv.DataLayer.Transformers.BuildParser]
 
   defmodule Query do
     @moduledoc false
@@ -146,6 +149,154 @@ defmodule AshCsv.DataLayer do
 
       {:error, error} ->
         {:error, error}
+    end
+  end
+
+  @impl true
+  def bulk_create(resource, stream, options) do
+    stream = Enum.to_list(stream)
+
+    if options[:upsert?] do
+      # This is not optimized, but thats okay for now
+      stream
+      |> Enum.reduce_while({:ok, []}, fn changeset, {:ok, results} ->
+        changeset =
+          Ash.Changeset.set_context(changeset, %{
+            private: %{upsert_fields: options[:upsert_fields] || []}
+          })
+
+        case upsert(resource, changeset, options.upsert_keys) do
+          {:ok, result} ->
+            {:cont,
+             {:ok,
+              [
+                Ash.Resource.put_metadata(
+                  result,
+                  :bulk_create_index,
+                  changeset.context.bulk_create.index
+                )
+                | results
+              ]}}
+
+          {:error, error} ->
+            {:halt, {:error, error}}
+        end
+      end)
+    else
+      case run_query(%Query{resource: resource}, resource) do
+        {:ok, records} ->
+          pkey = Ash.Resource.Info.primary_key(resource)
+
+          record_pkeys = MapSet.new(records, &Map.take(&1, pkey))
+
+          base =
+            if options.return_records? do
+              :ok
+            else
+              {:ok, []}
+            end
+
+          Enum.reduce_while(stream, {record_pkeys, base}, fn changeset, {record_pkeys, results} ->
+            pkey_value = Map.take(changeset.attributes, pkey)
+
+            if pkey_value in record_pkeys do
+              {:halt, {:error, "Record #{inspect(pkey_value)} is not unique"}}
+            else
+              row =
+                Enum.reduce_while(columns(resource), {:ok, []}, fn key, {:ok, row} ->
+                  value = Map.get(changeset.attributes, key)
+
+                  {:cont, {:ok, [to_string(value) | row]}}
+                end)
+
+              case row do
+                {:ok, row} ->
+                  lines =
+                    [Enum.reverse(row)]
+                    |> CSV.encode(separator: separator(resource))
+                    |> Enum.to_list()
+
+                  result =
+                    if File.exists?(file(resource)) do
+                      :ok
+                    else
+                      if create?(resource) do
+                        File.mkdir_p!(Path.dirname(file(resource)))
+                        File.write!(file(resource), header(resource))
+                        :ok
+                      else
+                        {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+                      end
+                    end
+
+                  case result do
+                    {:error, error} ->
+                      {:halt, {:error, error}}
+
+                    :ok ->
+                      case write_result(resource, lines) do
+                        :ok ->
+                          new_results =
+                            if options.return_records? do
+                              record =
+                                resource
+                                |> struct(changeset.attributes)
+                                |> Ash.Resource.put_metadata(
+                                  :bulk_create_index,
+                                  changeset.context.bulk_create.index
+                                )
+
+                              {:ok, [record | results]}
+                            else
+                              :ok
+                            end
+
+                          {:cont, {MapSet.put(record_pkeys, pkey_value), new_results}}
+
+                        {:error, error} ->
+                          {:halt, {:error, error}}
+                      end
+                  end
+
+                {:error, error} ->
+                  {:error, {:error, error}}
+              end
+            end
+          end)
+          |> case do
+            {:error, error} ->
+              {:error, error}
+
+            {_, result} ->
+              result
+          end
+
+        {:error, error} ->
+          {:error, error}
+      end
+    end
+  end
+
+  defp write_result(resource, lines, retry? \\ false) do
+    resource
+    |> file()
+    |> File.write(lines, [:append])
+    |> case do
+      :ok ->
+        :ok
+
+      {:error, :enoent} when retry? ->
+        {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+
+      {:error, :enoent} ->
+        if create?(resource) do
+          write_result(resource, lines, true)
+        else
+          {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
+        end
+
+      {:error, error} ->
+        {:error, "Error while writing to CSV: #{inspect(error)}"}
     end
   end
 
@@ -207,30 +358,7 @@ defmodule AshCsv.DataLayer do
   end
 
   defp cast_stored(resource, keys) do
-    Enum.reduce_while(keys, {:ok, resource.__struct__}, fn {key, value}, {:ok, record} ->
-      with attribute when not is_nil(attribute) <- Ash.Resource.Info.attribute(resource, key),
-           {:value, value} when not is_nil(value) <- {:value, stored_value(value, attribute)},
-           {:ok, loaded} <- Ash.Type.cast_stored(attribute.type, value) do
-        {:cont, {:ok, struct(record, [{key, loaded}])}}
-      else
-        {:value, nil} ->
-          {:cont, {:ok, struct(record, [{key, nil}])}}
-
-        nil ->
-          {:halt, {:error, "#{key} is not an attribute"}}
-
-        :error ->
-          {:halt, {:error, "#{key} could not be loaded"}}
-      end
-    end)
-  end
-
-  defp stored_value(value, attribute) do
-    if value == "" and Ash.Type.ecto_type(attribute.type) not in [:string, :uuid, :binary_id] do
-      nil
-    else
-      value
-    end
+    resource.ash_csv_parse_row(keys)
   end
 
   @impl true
@@ -282,22 +410,13 @@ defmodule AshCsv.DataLayer do
 
   # sobelow_skip ["Traversal.FileModule"]
   defp do_destroy({:ok, results}, resource, record) do
-    columns = columns(resource)
-
     pkey = Ash.Resource.Info.primary_key(resource)
 
     changeset_pkey = Map.take(record, pkey)
 
     results
     |> Enum.reduce_while({:ok, []}, fn result, {:ok, results} ->
-      key_vals =
-        columns
-        |> Enum.zip(result)
-        |> Enum.reject(fn {key, _value} ->
-          key == :_
-        end)
-
-      cast(resource, key_vals, pkey, changeset_pkey, result, results)
+      cast(resource, result, pkey, changeset_pkey, result, results)
     end)
     |> case do
       {:ok, rows} ->
@@ -328,8 +447,8 @@ defmodule AshCsv.DataLayer do
 
   defp do_destroy({:error, error}, _, _), do: {:error, error}
 
-  defp cast(resource, key_vals, pkey, changeset_pkey, result, results) do
-    case cast_stored(resource, key_vals) do
+  defp cast(resource, row, pkey, changeset_pkey, result, results) do
+    case cast_stored(resource, row) do
       {:ok, casted} ->
         if Map.take(casted, pkey) == changeset_pkey do
           {:cont, {:ok, results}}
@@ -348,8 +467,6 @@ defmodule AshCsv.DataLayer do
 
   # sobelow_skip ["Traversal.FileModule"]
   defp do_update({:ok, results}, resource, changeset) do
-    columns = columns(resource)
-
     pkey = Ash.Resource.Info.primary_key(resource)
 
     changeset_pkey =
@@ -359,14 +476,7 @@ defmodule AshCsv.DataLayer do
 
     results
     |> Enum.reduce_while({:ok, []}, fn result, {:ok, results} ->
-      key_vals =
-        columns
-        |> Enum.zip(result)
-        |> Enum.reject(fn {key, _value} ->
-          key == :_
-        end)
-
-      dump(resource, changeset, results, result, key_vals, pkey, changeset_pkey)
+      dump(resource, changeset, results, result, pkey, changeset_pkey)
     end)
     |> case do
       {:ok, rows} ->
@@ -407,11 +517,14 @@ defmodule AshCsv.DataLayer do
     end
   end
 
-  defp dump(resource, changeset, results, result, key_vals, pkey, changeset_pkey) do
-    case cast_stored(resource, key_vals) do
+  defp dump(resource, changeset, results, result, pkey, changeset_pkey) do
+    case cast_stored(resource, result) do
       {:ok, casted} ->
         if Map.take(casted, pkey) == changeset_pkey do
-          dump_row(resource, changeset, results)
+          case dump_row(resource, %{changeset | data: casted}) do
+            {:ok, row} -> {:cont, {:ok, [row | results]}}
+            {:error, error} -> {:halt, {:error, error}}
+          end
         else
           {:cont, {:ok, [result | results]}}
         end
@@ -421,19 +534,8 @@ defmodule AshCsv.DataLayer do
     end
   end
 
-  defp dump_row(resource, changeset, results) do
-    Enum.reduce_while(Enum.reverse(columns(resource)), {:ok, []}, fn key, {:ok, row} ->
-      value = Ash.Changeset.get_attribute(changeset, key)
-
-      {:cont, {:ok, [to_string(value) | row]}}
-    end)
-    |> case do
-      {:ok, new_row} ->
-        {:cont, {:ok, [new_row | results]}}
-
-      {:error, error} ->
-        {:halt, {:error, error}}
-    end
+  defp dump_row(resource, changeset) do
+    resource.ash_csv_dump_row(struct(changeset.data, changeset.attributes))
   end
 
   # sobelow_skip ["Traversal.FileModule"]
@@ -454,8 +556,6 @@ defmodule AshCsv.DataLayer do
         0
       end
 
-    columns = columns(resource)
-
     results =
       resource
       |> file()
@@ -463,39 +563,51 @@ defmodule AshCsv.DataLayer do
       |> Stream.drop(amount_to_drop)
       |> CSV.decode(separator: separator(resource))
       |> then(fn csv_stream ->
-        if decode? do
-          csv_stream
-          |> Stream.map(fn
-            {:error, error} ->
-              throw({:error, error})
+        cond do
+          decode? && is_nil(filter) && sort in [nil, []] ->
+            csv_stream
+            |> offset_stream(offset)
+            |> limit_stream(limit)
+            |> Stream.map(fn
+              {:error, error} ->
+                throw({:error, error})
 
-            {:ok, row} ->
-              key_vals =
-                columns
-                |> Enum.zip(row)
-                |> Enum.reject(fn {key, _value} ->
-                  key == :_
-                end)
+              {:ok, row} ->
+                case cast_stored(resource, row) do
+                  {:ok, casted} -> casted
+                  {:error, error} -> throw({:error, error})
+                end
+            end)
+            |> Enum.to_list()
 
-              case cast_stored(resource, key_vals) do
-                {:ok, casted} -> casted
-                {:error, error} -> throw({:error, error})
-              end
-          end)
-          |> filter_stream(domain, filter)
-          |> sort_stream(resource, domain, sort)
-          |> offset_stream(offset)
-          |> limit_stream(limit)
-          |> Enum.to_list()
-        else
-          csv_stream
-          |> Stream.map(fn
-            {:error, error} ->
-              throw({:error, error})
+          decode? ->
+            csv_stream
+            |> Stream.map(fn
+              {:error, error} ->
+                throw({:error, error})
 
-            {:ok, row} ->
-              row
-          end)
+              {:ok, row} ->
+                case cast_stored(resource, row) do
+                  {:ok, casted} -> casted
+                  {:error, error} -> throw({:error, error})
+                end
+            end)
+            |> filter_stream(domain, filter)
+            |> sort_stream(resource, domain, sort)
+            |> offset_stream(offset)
+            |> limit_stream(limit)
+            |> Enum.to_list()
+
+          true ->
+            csv_stream
+            |> Stream.map(fn
+              {:error, error} ->
+                throw({:error, error})
+
+              {:ok, row} ->
+                row
+            end)
+            |> Enum.to_list()
         end
       end)
 
