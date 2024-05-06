@@ -1,4 +1,5 @@
 defmodule AshCsv.DataLayer.Transformers.BuildParser do
+  @moduledoc false
   use Spark.Dsl.Transformer
 
   def transform(dsl) do
@@ -15,17 +16,17 @@ defmodule AshCsv.DataLayer.Transformers.BuildParser do
         matcher = {column, [], Elixir}
 
         value =
-          if Ash.Type.ecto_type(attribute.type) not in [:string, :uuid, :binary_id] do
+          if Ash.Type.ecto_type(attribute.type) in [:string, :uuid, :binary_id] do
+            quote do
+              unquote(matcher)
+            end
+          else
             quote do
               if unquote(matcher) == "" do
                 nil
               else
                 unquote(matcher)
               end
-            end
-          else
-            quote do
-              unquote(matcher)
             end
           end
 
