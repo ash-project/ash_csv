@@ -3,6 +3,8 @@ defmodule AshCsv.DataLayer do
 
   alias Ash.Actions.Sort
 
+  @filter_stream_size 100
+
   @impl true
   def can?(_, :read), do: true
   def can?(_, :create), do: true
@@ -126,23 +128,7 @@ defmodule AshCsv.DataLayer do
 
   @impl true
   def run_query(query, resource) do
-    case read_file(resource) do
-      {:ok, results} ->
-        offset_records =
-          results
-          |> filter_matches(query.filter, query.domain)
-          |> Sort.runtime_sort(query.sort, domain: query.domain)
-          |> Enum.drop(query.offset || 0)
-
-        if query.limit do
-          {:ok, Enum.take(offset_records, query.limit)}
-        else
-          {:ok, offset_records}
-        end
-
-      {:error, error} ->
-        {:error, error}
-    end
+    read_file(resource, true, query.domain, query.filter, query.sort, query.offset, query.limit)
   rescue
     e in File.Error ->
       if create?(resource) do
@@ -209,14 +195,14 @@ defmodule AshCsv.DataLayer do
   @impl true
   def update(resource, changeset) do
     resource
-    |> do_read_file()
+    |> read_file(false, changeset.domain)
     |> do_update(resource, changeset)
   end
 
   @impl true
-  def destroy(resource, %{data: record}) do
+  def destroy(resource, %{data: record, domain: domain}) do
     resource
-    |> do_read_file()
+    |> read_file(false, domain)
     |> do_destroy(resource, record)
   end
 
@@ -450,39 +436,17 @@ defmodule AshCsv.DataLayer do
     end
   end
 
-  defp read_file(resource) do
-    columns = columns(resource)
-
-    resource
-    |> do_read_file()
-    |> case do
-      {:ok, results} ->
-        do_cast_stored(results, columns, resource)
-
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-
-  defp do_cast_stored(results, columns, resource) do
-    results
-    |> Enum.reduce_while({:ok, []}, fn result, {:ok, results} ->
-      key_vals =
-        columns
-        |> Enum.zip(result)
-        |> Enum.reject(fn {key, _value} ->
-          key == :_
-        end)
-
-      case cast_stored(resource, key_vals) do
-        {:ok, casted} -> {:cont, {:ok, [casted | results]}}
-        {:error, error} -> {:halt, {:error, error}}
-      end
-    end)
-  end
-
   # sobelow_skip ["Traversal.FileModule"]
-  defp do_read_file(resource, retry? \\ false) do
+  defp read_file(
+         resource,
+         decode?,
+         domain,
+         filter \\ nil,
+         sort \\ nil,
+         offset \\ nil,
+         limit \\ nil,
+         retry? \\ false
+       ) do
     amount_to_drop =
       if header?(resource) do
         1
@@ -490,29 +454,90 @@ defmodule AshCsv.DataLayer do
         0
       end
 
-    resource
-    |> file()
-    |> File.stream!()
-    |> Stream.drop(amount_to_drop)
-    |> CSV.decode(separator: separator(resource))
-    |> Enum.reduce_while({:ok, []}, fn
-      {:ok, result}, {:ok, results} ->
-        {:cont, {:ok, [result | results]}}
+    columns = columns(resource)
 
-      {:error, error}, _ ->
-        {:halt, {:error, error}}
-    end)
+    results =
+      resource
+      |> file()
+      |> File.stream!()
+      |> Stream.drop(amount_to_drop)
+      |> CSV.decode(separator: separator(resource))
+      |> then(fn csv_stream ->
+        if decode? do
+          csv_stream
+          |> Stream.map(fn
+            {:error, error} ->
+              throw({:error, error})
+
+            {:ok, row} ->
+              key_vals =
+                columns
+                |> Enum.zip(row)
+                |> Enum.reject(fn {key, _value} ->
+                  key == :_
+                end)
+
+              case cast_stored(resource, key_vals) do
+                {:ok, casted} -> casted
+                {:error, error} -> throw({:error, error})
+              end
+          end)
+          |> filter_stream(domain, filter)
+          |> sort_stream(resource, domain, sort)
+          |> offset_stream(offset)
+          |> limit_stream(limit)
+          |> Enum.to_list()
+        else
+          csv_stream
+          |> Stream.map(fn
+            {:error, error} ->
+              throw({:error, error})
+
+            {:ok, row} ->
+              row
+          end)
+        end
+      end)
+
+    {:ok, results}
   rescue
     e in File.Error ->
       if e.reason == :enoent && !retry? do
         file = file(resource)
         File.mkdir_p!(Path.dirname(file))
         File.write!(file(resource), header(resource))
-        do_read_file(resource, true)
+        read_file(resource, decode?, domain, filter, sort, offset, limit, true)
       else
         reraise e, __STACKTRACE__
       end
+  catch
+    {:error, error} ->
+      {:error, error}
   end
+
+  defp sort_stream(stream, _resource, _domain, sort) when sort in [nil, []] do
+    stream
+  end
+
+  defp sort_stream(stream, resource, domain, sort) do
+    Sort.runtime_sort(stream, sort, domain: domain, resource: resource)
+  end
+
+  defp filter_stream(stream, _domain, nil), do: stream
+
+  defp filter_stream(stream, domain, filter) do
+    stream
+    |> Stream.chunk_every(@filter_stream_size)
+    |> Stream.flat_map(fn chunk ->
+      filter_matches(chunk, filter, domain)
+    end)
+  end
+
+  defp offset_stream(stream, offset) when offset in [0, nil], do: stream
+  defp offset_stream(stream, offset), do: Stream.drop(stream, offset)
+
+  defp limit_stream(stream, nil), do: stream
+  defp limit_stream(stream, limit), do: Stream.take(stream, limit)
 
   # sobelow_skip ["Traversal.FileModule"]
   defp create_from_records(records, resource, changeset, retry?) do
