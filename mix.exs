@@ -51,13 +51,17 @@ defmodule AshCsv.MixProject do
       extras: [
         {"README.md", title: "Home"},
         "documentation/tutorials/getting-started-with-ash-csv.md",
-        "documentation/dsls/DSL:-AshCsv.DataLayer.md"
+        "documentation/dsls/DSL:-AshCsv.DataLayer.md",
+        "CHANGELOG.md"
       ],
       groups_for_extras: [
         Tutorials: ~r'documentation/tutorials',
         "How To": ~r'documentation/how_to',
         Topics: ~r'documentation/topics',
-        DSLs: ~r'documentation/dsls'
+        DSLs: ~r'documentation/dsls',
+        "About AshCsv": [
+          "CHANGELOG.md"
+        ]
       ],
       groups_for_modules: [
         AshCsv: [
