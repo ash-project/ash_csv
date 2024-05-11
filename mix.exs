@@ -1,7 +1,7 @@
 defmodule AshCsv.MixProject do
   use Mix.Project
 
-  @version "0.9.7-rc.0"
+  @version "0.9.7"
 
   @description "The CSV data layer for Ash Framework"
 
@@ -99,7 +99,7 @@ defmodule AshCsv.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, ash_version("~> 3.0.0-rc and >= 3.0.0-rc.46")},
+      {:ash, ash_version("~> 3.0")},
       {:csv, "~> 3.0"},
       {:ex_doc, github: "elixir-lang/ex_doc", only: [:dev, :test], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},
