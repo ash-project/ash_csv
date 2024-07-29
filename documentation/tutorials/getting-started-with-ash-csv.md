@@ -10,4 +10,18 @@ Add `ash_csv` to your list of dependencies in `mix.exs`:
 {:ash_csv, "~> 0.9.7"}
 ```
 
-For information on how to configure it, see the [DSL documentation.](/documentation/dsls/DSL:-AshCsv.DataLayer.md)
+## Usage
+
+```
+defmodule MyApp.MyResource do
+  use Ash.Resource,
+    domain: MyApp,
+    data_layer: AshCsv.DataLayer
+
+  csv do
+    ... # see configuration options below
+  end
+end
+```
+
+For information on how to configure ash_csv, see the [DSL documentation.](/documentation/dsls/DSL:-AshCsv.DataLayer.md)
