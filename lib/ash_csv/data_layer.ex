@@ -32,7 +32,7 @@ defmodule AshCsv.DataLayer do
         file "priv/data/tags.csv"
         create? true
         header? true
-        separator '-'
+        separator ?;
         columns [:id, :name]
       end
       """
