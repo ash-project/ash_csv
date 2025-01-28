@@ -18,7 +18,7 @@ defmodule AshCsv.MixProject do
         "coveralls.github": :test
       ],
       elixirc_paths: elixirc_paths(Mix.env()),
-      docs: docs(),
+      docs: &docs/0,
       aliases: aliases(),
       description: @description,
       source_url: "https://github.com/ash-project/ash_csv",
@@ -51,7 +51,8 @@ defmodule AshCsv.MixProject do
       extras: [
         {"README.md", title: "Home"},
         "documentation/tutorials/getting-started-with-ash-csv.md",
-        "documentation/dsls/DSL:-AshCsv.DataLayer.md",
+        {"documentation/dsls/DSL-AshCsv.DataLayer.md",
+         search_data: Spark.Docs.search_data_for(AshCsv.DataLayer)},
         "CHANGELOG.md"
       ],
       groups_for_extras: [
@@ -101,7 +102,8 @@ defmodule AshCsv.MixProject do
     [
       {:ash, ash_version("~> 3.0")},
       {:csv, "~> 3.0"},
-      {:ex_doc, github: "elixir-lang/ex_doc", only: [:dev, :test], runtime: false},
+      {:igniter, "~> 0.5", only: [:dev, :test]},
+      {:ex_doc, "~> 0.37-rc", only: [:dev, :test], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},
       {:credo, ">= 0.0.0", only: [:dev, :test], runtime: false},
       {:dialyxir, ">= 0.0.0", only: [:dev, :test], runtime: false},
@@ -128,12 +130,10 @@ defmodule AshCsv.MixProject do
       docs: [
         "spark.cheat_sheets",
         "docs",
-        "spark.replace_doc_links",
-        "spark.cheat_sheets_in_search"
+        "spark.replace_doc_links"
       ],
       "spark.formatter": "spark.formatter --extensions AshCsv.DataLayer",
-      "spark.cheat_sheets": "spark.cheat_sheets --extensions AshCsv.DataLayer",
-      "spark.cheat_sheets_in_search": "spark.cheat_sheets_in_search --extensions AshCsv.DataLayer"
+      "spark.cheat_sheets": "spark.cheat_sheets --extensions AshCsv.DataLayer"
     ]
   end
 end

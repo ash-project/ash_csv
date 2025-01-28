@@ -24,4 +24,4 @@ defmodule MyApp.MyResource do
 end
 ```
 
-For information on how to configure ash_csv, see the [DSL documentation.](/documentation/dsls/DSL:-AshCsv.DataLayer.md)
+For information on how to configure ash_csv, see the [DSL documentation.](/documentation/dsls/DSL-AshCsv.DataLayer.md)

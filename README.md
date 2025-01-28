@@ -16,4 +16,4 @@ Welcome! This is the CSV Data Layer for [Ash Framework](https://hexdocs.pm/ash).
 
 ## Reference
 
-- [AshCsv.DataLayer DSL](documentation/dsls/DSL:-AshCsv.DataLayer.md)
+- [AshCsv.DataLayer DSL](documentation/dsls/DSL-AshCsv.DataLayer.md)
