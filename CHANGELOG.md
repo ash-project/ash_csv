@@ -11,17 +11,6 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
-## [v0.9.7](https://github.com/ash-project/ash_csv/compare/v0.9.7...v0.9.7) (2024-05-11)
-
-
-
-
-### Improvements:
-
-* performance gains via compile time building of parser/dumper
-
-* performance improvements
-
 ## [v0.9.7](https://github.com/ash-project/ash_csv/compare/v0.9.7-rc.0...v0.9.7) (2024-05-11)
 
 
