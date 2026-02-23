@@ -112,7 +112,7 @@ defmodule AshCsv.MixProject do
   defp deps do
     [
       {:ash, ash_version("~> 3.0")},
-      {:csv, "~> 3.0"},
+      {:nimble_csv, "~> 1.2"},
       {:igniter, "~> 0.5", only: [:dev, :test]},
       {:ex_doc, "~> 0.37-rc", only: [:dev, :test], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},

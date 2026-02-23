@@ -28,4 +28,8 @@ defmodule AshCsv.DataLayer.Info do
   def create?(resource) do
     Extension.get_opt(resource, [:csv], :create?, nil, true)
   end
+
+  def csv_module(resource) do
+    Module.concat([resource, AshCsvNimbleCSV])
+  end
 end
