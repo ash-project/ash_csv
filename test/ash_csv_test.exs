@@ -46,6 +46,19 @@ defmodule AshCsvTest do
     assert [%{title: "new_title"}] = Ash.read!(Post)
   end
 
+  test "in_transaction? is cleared after a write completes" do
+    refute AshCsv.DataLayer.in_transaction?(Post)
+
+    Post
+    |> Ash.Changeset.for_create(:create, %{title: "title"})
+    |> Ash.create!()
+
+    # The transaction flag used to be set but never cleared, so it stayed
+    # true for the rest of the process and later writes silently skipped the
+    # :global write lock (lost updates, duplicate primary keys).
+    refute AshCsv.DataLayer.in_transaction?(Post)
+  end
+
   test "a resource can be deleted" do
     post =
       Post

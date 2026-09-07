@@ -370,11 +370,17 @@ defmodule AshCsv.DataLayer do
       {{:csv, file}, System.unique_integer()},
       fn ->
         try do
-          Process.put({:csv_in_transaction, file(resource)}, true)
+          Process.put({:csv_in_transaction, file}, true)
           {:res, fun.()}
         catch
           {{:csv_rollback, ^file}, value} ->
             {:error, value}
+        after
+          # Clear the flag when the transaction frame exits. Leaving it set
+          # made in_transaction?/1 return true for the rest of the process,
+          # so later writes skipped the :global lock (lost updates) and a
+          # rollback throw escaped this frame uncaught.
+          Process.delete({:csv_in_transaction, file})
         end
       end,
       [node() | :erlang.nodes()],
