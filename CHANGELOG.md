@@ -11,6 +11,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.9.9](https://github.com/ash-project/ash_csv/compare/v0.9.8...v0.9.9) (2026-09-07)
+
+
+
+
+### Bug Fixes:
+
+* clear `in_transaction?` pdict metadata on transaction end by Zach Daniel
+
 ## [v0.9.8](https://github.com/ash-project/ash_csv/compare/v0.9.7...v0.9.8) (2026-04-13)
 
 
