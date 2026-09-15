@@ -70,6 +70,36 @@ defmodule AshCsvTest do
     assert [] = Ash.read!(Post)
   end
 
+  test "updating a record preserves the order of rows in the file" do
+    [_first, second, _third] = create_posts(["title1", "title2", "title3"])
+
+    second
+    |> Ash.Changeset.for_update(:update, %{title: "updated"})
+    |> Ash.update!()
+
+    assert file_titles() == ["title1", "updated", "title3"]
+  end
+
+  test "destroying a record preserves the order of rows in the file" do
+    [_first, second, _third] = create_posts(["title1", "title2", "title3"])
+
+    Ash.destroy!(second)
+
+    assert file_titles() == ["title1", "title3"]
+  end
+
+  test "rewriting the file leaves no temporary files behind" do
+    [post] = create_posts(["title"])
+
+    post
+    |> Ash.Changeset.for_update(:update, %{title: "new_title"})
+    |> Ash.update!()
+
+    Ash.destroy!(post)
+
+    assert File.ls!("test/data_files") == ["posts.csv"]
+  end
+
   test "filters/sorts can be applied" do
     Post
     |> Ash.Changeset.for_create(:create, %{title: "title1"})
@@ -90,5 +120,22 @@ defmodule AshCsvTest do
       |> Ash.read!()
 
     assert [%{title: "title1"}, %{title: "title2"}] = results
+  end
+
+  defp create_posts(titles) do
+    Enum.map(titles, fn title ->
+      Post
+      |> Ash.Changeset.for_create(:create, %{title: title})
+      |> Ash.create!()
+    end)
+  end
+
+  # Reads the raw file (not through Ash) so we assert on the on-disk row order.
+  # `Post` is configured without a header row.
+  defp file_titles do
+    "test/data_files/posts.csv"
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line -> line |> String.split(",") |> Enum.at(1) end)
   end
 end

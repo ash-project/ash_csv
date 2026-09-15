@@ -10,13 +10,22 @@ defmodule AshCsv.DataLayer.Transformers.BuildParser do
     columns = AshCsv.DataLayer.Info.columns(dsl)
     separator = AshCsv.DataLayer.Info.separator(dsl) || ?,
 
-    separator_string =
+    separator_string_result =
       try do
-        <<separator::utf8>>
+        {:ok, <<separator::utf8>>}
       rescue
         _ ->
+          :error
+      end
+
+    separator_string =
+      case separator_string_result do
+        {:ok, result} ->
+          result
+
+        :error ->
           raise ArgumentError,
-            "Invalid separator value: #{inspect(separator)}. Expected a valid UTF-8 character."
+                "Invalid separator value: #{inspect(separator)}. Expected a valid UTF-8 character."
       end
 
     func_args =
@@ -108,13 +117,13 @@ defmodule AshCsv.DataLayer.Transformers.BuildParser do
        dsl,
        [],
        quote do
-        # Define the NimbleCSV parser
-        NimbleCSV.define(unquote(csv_module),
-          separator: unquote(separator_string),
-          line_separator: "\n"
-        )
+         # Define the NimbleCSV parser
+         NimbleCSV.define(unquote(csv_module),
+           separator: unquote(separator_string),
+           line_separator: "\n"
+         )
 
-        def ash_csv_dump_row(unquote(map)) do
+         def ash_csv_dump_row(unquote(map)) do
            {:ok, unquote(dump_fields)}
          catch
            {:error, error} ->

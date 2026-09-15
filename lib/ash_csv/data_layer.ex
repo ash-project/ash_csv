@@ -417,42 +417,27 @@ defmodule AshCsv.DataLayer do
     changeset_pkey = Map.take(record, pkey)
 
     results
-    |> Enum.reduce_while({:ok, []}, fn result, {:ok, results} ->
-      cast(resource, result, pkey, changeset_pkey, result, results)
+    |> Enum.reduce_while({:ok, []}, fn result, {:ok, acc} ->
+      cast(resource, result, pkey, changeset_pkey, acc)
     end)
     |> case do
-      {:ok, rows} ->
-        iodata = csv_module(resource).dump_to_iodata(rows)
+      {:ok, iodata} ->
+        write_all_rows(iodata, resource)
 
-        iodata =
-          if header?(resource) do
-            [header(resource), iodata]
-          else
-            iodata
-          end
-
-        resource
-        |> file()
-        |> File.write(iodata, [:write])
-        |> case do
-          :ok ->
-            :ok
-
-          {:error, error} ->
-            {:error, "Error while writing to CSV: #{inspect(error)}"}
-        end
+      {:error, error} ->
+        {:error, error}
     end
   end
 
   defp do_destroy({:error, error}, _, _), do: {:error, error}
 
-  defp cast(resource, row, pkey, changeset_pkey, result, results) do
+  defp cast(resource, row, pkey, changeset_pkey, acc) do
     case cast_stored(resource, row) do
       {:ok, casted} ->
         if Map.take(casted, pkey) == changeset_pkey do
-          {:cont, {:ok, results}}
+          {:cont, {:ok, acc}}
         else
-          {:cont, {:ok, [result | results]}}
+          {:cont, {:ok, append_row(acc, resource, row)}}
         end
 
       {:error, error} ->
@@ -474,55 +459,96 @@ defmodule AshCsv.DataLayer do
       end)
 
     results
-    |> Enum.reduce_while({:ok, []}, fn result, {:ok, results} ->
-      dump(resource, changeset, results, result, pkey, changeset_pkey)
+    |> Enum.reduce_while({:ok, []}, fn result, {:ok, acc} ->
+      dump(resource, changeset, acc, result, pkey, changeset_pkey)
     end)
     |> case do
-      {:ok, rows} ->
-        iodata = csv_module(resource).dump_to_iodata(rows)
-
-        if File.exists?(file(resource)) do
-          :ok
-        else
-          if create?(resource) do
-            File.mkdir_p!(Path.dirname(file(resource)))
-            File.write!(file(resource), header(resource))
-            :ok
-          else
-            {:error, "Error while writing to CSV: #{inspect(:enoent)}"}
-          end
+      {:ok, iodata} ->
+        case write_all_rows(iodata, resource) do
+          :ok -> {:ok, struct(changeset.data, changeset.attributes)}
+          {:error, error} -> {:error, error}
         end
 
-        iodata =
-          if header?(resource) do
-            [header(resource), iodata]
-          else
-            iodata
-          end
-
-        resource
-        |> file()
-        |> File.write(iodata, [:write])
-        |> case do
-          :ok ->
-            {:ok, struct(changeset.data, changeset.attributes)}
-
-          {:error, error} ->
-            {:error, "Error while writing to CSV: #{inspect(error)}"}
-        end
+      {:error, error} ->
+        {:error, error}
     end
   end
 
-  defp dump(resource, changeset, results, result, pkey, changeset_pkey) do
+  # Appends a row to an iodata accumulator. Nesting `[acc, row]` is O(1) and
+  # keeps rows in file order, so no reverse is needed before writing.
+  defp append_row(acc, resource, row) do
+    [acc, csv_module(resource).dump_to_iodata([row])]
+  end
+
+  # Rewrites the entire file with the given row iodata, preserving order.
+  #
+  # The content is written to a temporary file in the same directory and then
+  # renamed over the target, so a crash mid-write cannot leave a truncated file.
+  # sobelow_skip ["Traversal.FileModule"]
+  defp write_all_rows(iodata, resource) do
+    path = file(resource)
+
+    iodata =
+      if header?(resource) do
+        [header(resource), iodata]
+      else
+        iodata
+      end
+
+    with :ok <- ensure_file_exists(resource),
+         tmp_path = tmp_path(path),
+         :ok <- File.write(tmp_path, iodata, [:write]),
+         :ok <- rename_or_cleanup(tmp_path, path) do
+      :ok
+    else
+      {:error, error} ->
+        {:error, "Error while writing to CSV: #{inspect(error)}"}
+    end
+  end
+
+  # sobelow_skip ["Traversal.FileModule"]
+  defp ensure_file_exists(resource) do
+    path = file(resource)
+
+    cond do
+      File.exists?(path) ->
+        :ok
+
+      create?(resource) ->
+        File.mkdir_p(Path.dirname(path))
+
+      true ->
+        {:error, :enoent}
+    end
+  end
+
+  defp tmp_path(path) do
+    suffix = :erlang.unique_integer([:positive]) |> Integer.to_string()
+    path <> ".tmp." <> suffix
+  end
+
+  # sobelow_skip ["Traversal.FileModule"]
+  defp rename_or_cleanup(tmp_path, path) do
+    case File.rename(tmp_path, path) do
+      :ok ->
+        :ok
+
+      {:error, error} ->
+        File.rm(tmp_path)
+        {:error, error}
+    end
+  end
+
+  defp dump(resource, changeset, acc, result, pkey, changeset_pkey) do
     case cast_stored(resource, result) do
       {:ok, casted} ->
         if Map.take(casted, pkey) == changeset_pkey do
           case dump_row(resource, %{changeset | data: casted}) do
-            {:ok, row} -> {:cont, {:ok, [row | results]}}
+            {:ok, row} -> {:cont, {:ok, append_row(acc, resource, row)}}
             {:error, error} -> {:halt, {:error, error}}
           end
         else
-          {:cont, {:ok, [result | results]}}
+          {:cont, {:ok, append_row(acc, resource, result)}}
         end
 
       {:error, error} ->
