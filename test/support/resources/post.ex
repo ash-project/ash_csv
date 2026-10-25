@@ -46,7 +46,7 @@ defmodule AshCsv.Test.Post do
   end
 
   identities do
-    identity(:unique_unique, [:unique])
+    identity(:unique_unique, [:unique], pre_check_with: AshCsv.Test.Domain)
   end
 
   relationships do
