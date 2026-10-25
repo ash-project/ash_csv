@@ -5,7 +5,7 @@
 defmodule AshCsv.MixProject do
   use Mix.Project
 
-  @version "0.9.9"
+  @version "0.9.10"
 
   @description "The CSV data layer for Ash Framework"
 

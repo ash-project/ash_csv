@@ -11,6 +11,19 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.9.10](https://github.com/ash-project/ash_csv/compare/v0.9.9...v0.9.10) (2026-10-25)
+
+
+
+
+### Bug Fixes:
+
+* require `pre_check_with` on identities (#18) by Aaron Paterson
+
+* wait for the file's lock instead of failing the transaction (#17) by Aaron Paterson
+
+* retain file order by Zach Daniel
+
 ## [v0.9.9](https://github.com/ash-project/ash_csv/compare/v0.9.8...v0.9.9) (2026-09-07)
 
 
