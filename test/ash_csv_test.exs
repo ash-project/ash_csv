@@ -5,12 +5,70 @@
 defmodule AshCsvTest do
   use ExUnit.Case, async: false
   alias AshCsv.Test.Post
+  import Spark.Test
   require Ash.Query
 
   setup do
     on_exit(fn ->
       File.rm_rf!("test/data_files")
     end)
+  end
+
+  test "an identity must be checked with `pre_check_with`" do
+    error =
+      assert_dsl_error %Spark.Error.DslError{} do
+        defmodule Elixir.AshCsvTest.UncheckedIdentity do
+          @moduledoc false
+          use Ash.Resource, data_layer: AshCsv.DataLayer
+
+          csv do
+            columns [:id, :email]
+            file "test/data_files/unchecked_identity.csv"
+          end
+
+          actions do
+            defaults([:read])
+          end
+
+          attributes do
+            uuid_primary_key(:id)
+            attribute(:email, :string, public?: true)
+          end
+
+          identities do
+            identity(:unique_email, [:email])
+          end
+        end
+      end
+
+    assert error.message =~ "Must specify the `pre_check_with` option."
+  end
+
+  test "an identity checked with `pre_check_with` is accepted" do
+    refute_dsl_errors do
+      defmodule Elixir.AshCsvTest.CheckedIdentity do
+        @moduledoc false
+        use Ash.Resource, data_layer: AshCsv.DataLayer
+
+        csv do
+          columns [:id, :email]
+          file "test/data_files/checked_identity.csv"
+        end
+
+        actions do
+          defaults([:read])
+        end
+
+        attributes do
+          uuid_primary_key(:id)
+          attribute(:email, :string, public?: true)
+        end
+
+        identities do
+          identity(:unique_email, [:email], pre_check_with: AshCsv.Test.Domain)
+        end
+      end
+    end
   end
 
   test "resources can be created" do

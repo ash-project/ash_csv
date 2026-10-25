@@ -126,7 +126,8 @@ defmodule AshCsv.DataLayer do
   """
   use Spark.Dsl.Extension,
     sections: @sections,
-    persisters: [AshCsv.DataLayer.Transformers.BuildParser]
+    persisters: [AshCsv.DataLayer.Transformers.BuildParser],
+    verifiers: [Ash.DataLayer.Verifiers.RequirePreCheckWith]
 
   defmodule Query do
     @moduledoc false
