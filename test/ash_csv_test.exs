@@ -122,6 +122,26 @@ defmodule AshCsvTest do
     assert [%{title: "title1"}, %{title: "title2"}] = results
   end
 
+  test "simultaneous creates all succeed" do
+    tasks =
+      for n <- 1..20 do
+        Task.async(fn ->
+          receive do
+            :go ->
+              Post
+              |> Ash.Changeset.for_create(:create, %{title: "title#{n}"})
+              |> Ash.create()
+          end
+        end)
+      end
+
+    Enum.each(tasks, &send(&1.pid, :go))
+    results = Task.await_many(tasks)
+
+    assert Enum.all?(results, &match?({:ok, _}, &1))
+    assert length(Ash.read!(Post)) == 20
+  end
+
   defp create_posts(titles) do
     Enum.map(titles, fn title ->
       Post

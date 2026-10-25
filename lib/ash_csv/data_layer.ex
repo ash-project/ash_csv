@@ -384,7 +384,9 @@ defmodule AshCsv.DataLayer do
         end
       end,
       [node() | :erlang.nodes()],
-      0
+      # A count of attempts to set the lock, not a timeout: a transaction that
+      # finds the file locked waits for the holder, as it would on a database.
+      :infinity
     )
     |> case do
       {:res, result} -> {:ok, result}
