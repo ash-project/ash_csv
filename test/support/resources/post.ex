@@ -17,6 +17,24 @@ defmodule AshCsv.Test.Post do
   actions do
     default_accept(:*)
     defaults([:create, :read, :update, :destroy])
+
+    create :create_touching_comments do
+      touches_resources([AshCsv.Test.Comment])
+    end
+
+    create :create_with_comment do
+      change(
+        after_action(fn _changeset, post, _context ->
+          AshCsv.Test.Comment
+          |> Ash.Changeset.for_create(:create, %{title: post.title})
+          |> Ash.create()
+          |> case do
+            {:ok, _} -> {:ok, post}
+            {:error, error} -> {:error, error}
+          end
+        end)
+      )
+    end
   end
 
   attributes do
