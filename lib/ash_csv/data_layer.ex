@@ -363,18 +363,45 @@ defmodule AshCsv.DataLayer do
   end
 
   @impl true
-  def transaction(resource, fun, _timeout, _) do
+  def transaction(resource, fun, _timeout, reason) do
     file = file(resource)
 
+    # A transaction that finds a file locked waits for the holder, as it would
+    # on a database. Waiting while holding another file's lock can deadlock, so
+    # the files of the resources an action touches are locked up front, in one
+    # order, and a file first locked inside a transaction is tried once.
+    {files, retries} =
+      if holds_lock?() do
+        {[file], 0}
+      else
+        {transaction_files(resource, reason), :infinity}
+      end
+
+    files
+    |> lock_files(retries, fn ->
+      try do
+        {:res, fun.()}
+      catch
+        {{:csv_rollback, ^file}, value} ->
+          {:error, value}
+      end
+    end)
+    |> case do
+      {:res, result} -> {:ok, result}
+      {:error, error} -> {:error, error}
+      :aborted -> {:error, "transaction failed"}
+    end
+  end
+
+  defp lock_files([], _retries, fun), do: fun.()
+
+  defp lock_files([file | files], retries, fun) do
     :global.trans(
       {{:csv, file}, System.unique_integer()},
       fn ->
         try do
           Process.put({:csv_in_transaction, file}, true)
-          {:res, fun.()}
-        catch
-          {{:csv_rollback, ^file}, value} ->
-            {:error, value}
+          lock_files(files, retries, fun)
         after
           # Clear the flag when the transaction frame exits. Leaving it set
           # made in_transaction?/1 return true for the rest of the process,
@@ -384,16 +411,37 @@ defmodule AshCsv.DataLayer do
         end
       end,
       [node() | :erlang.nodes()],
-      # A count of attempts to set the lock, not a timeout: a transaction that
-      # finds the file locked waits for the holder, as it would on a database.
-      :infinity
+      # A count of attempts to set the lock, not a timeout.
+      retries
     )
-    |> case do
-      {:res, result} -> {:ok, result}
-      {:error, error} -> {:error, error}
-      :aborted -> {:error, "transaction failed"}
+  end
+
+  defp holds_lock? do
+    Enum.any?(Process.get_keys(true), &match?({:csv_in_transaction, _}, &1))
+  end
+
+  defp transaction_files(resource, reason) do
+    [resource | touched_resources(reason)]
+    |> Enum.filter(&(Ash.Resource.Info.data_layer(&1) == __MODULE__))
+    |> Enum.map(&file/1)
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  defp touched_resources(%{metadata: %{resource: resource, action: action}})
+       when is_atom(action) do
+    case Ash.Resource.Info.action(resource, action) do
+      %{touches_resources: touches_resources} -> [resource | touches_resources]
+      _ -> [resource]
     end
   end
+
+  defp touched_resources(%{
+         metadata: %{query: %{action: %{touches_resources: touches_resources}}}
+       }),
+       do: touches_resources
+
+  defp touched_resources(_), do: []
 
   @impl true
   def rollback(resource, error) do

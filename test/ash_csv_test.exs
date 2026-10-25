@@ -142,6 +142,58 @@ defmodule AshCsvTest do
     assert length(Ash.read!(Post)) == 20
   end
 
+  test "actions that touch each other's files in opposite orders all complete" do
+    results =
+      for _round <- 1..10 do
+        pair_at_once([
+          {AshCsv.Test.Post, :create_touching_comments},
+          {AshCsv.Test.Comment, :create_touching_posts}
+        ])
+      end
+
+    assert Enum.all?(List.flatten(results), &match?({:ok, _}, &1))
+  end
+
+  test "actions that write each other's files from hooks finish" do
+    results =
+      for _round <- 1..10 do
+        pair_at_once([
+          {AshCsv.Test.Post, :create_with_comment},
+          {AshCsv.Test.Comment, :create_with_post}
+        ])
+      end
+
+    refute Enum.member?(List.flatten(results), :still_waiting)
+  end
+
+  # Runs one create on each resource at the same moment, giving each three seconds.
+  defp pair_at_once(actions) do
+    tasks =
+      for {resource, action} <- actions do
+        Task.async(fn ->
+          receive do
+            :go ->
+              resource
+              |> Ash.Changeset.for_create(action, %{title: "title"})
+              |> Ash.create()
+          end
+        end)
+      end
+
+    Enum.each(tasks, &send(&1.pid, :go))
+
+    tasks
+    |> Task.yield_many(3_000)
+    |> Enum.map(fn
+      {_task, {:ok, result}} ->
+        result
+
+      {task, nil} ->
+        Task.shutdown(task, :brutal_kill)
+        :still_waiting
+    end)
+  end
+
   defp create_posts(titles) do
     Enum.map(titles, fn title ->
       Post
